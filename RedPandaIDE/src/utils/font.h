@@ -17,7 +17,6 @@
 #ifndef UTILS_FONT_H
 #define UTILS_FONT_H
 
-#include <QFont>
 #include <QString>
 #include <QStringList>
 #include <QLocale>
@@ -30,9 +29,7 @@ enum class UnicodeSupportLevel {
     Bidirectional = 4,
 };
 
-QString defaultUiFont(const QString &localeName = QLocale::system().name());
-QFont makeInterfaceFont(const QString &configuredFamily, int pointSize,
-                        const QString &localeName = QLocale::system().name());
+QString defaultUiFont();
 QString defaultMonoFont();
 QString defaultEmojiFont();
 bool isCjk(const QString &locale = QLocale::system().name());

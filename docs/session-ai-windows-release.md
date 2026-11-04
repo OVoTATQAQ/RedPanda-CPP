@@ -2,8 +2,7 @@
 
 This is a custom prerelease, not an official upstream Red Panda C++ release.
 It includes session code folders, OpenAI/DeepSeek/custom API presets and the AI
-filename panel. The interface uses point-sized fonts and explicit locale-aware
-CJK fallback families to keep Chinese text consistent across controls.
+filename panel.
 
 ## Run
 
@@ -21,30 +20,17 @@ OpenAI-compatible HTTPS chat completions API, model and key. Only clicking
 Generate sends source code. API keys are kept in memory for the current run.
 See `session-code-and-ai-naming.md` for details.
 
-## Switching an English Windows installation to Chinese
+## Interface language
 
-Change the IDE language through Tools > Options > Environment > Appearance,
-or close the IDE before editing the portable configuration file. For existing
-builds, the relevant settings are:
-
-```ini
-[Environment]
-language=zh_CN
-interface_font=Microsoft YaHei UI
-interface_font_size=11
-```
-
-Use `Microsoft YaHei` if `Microsoft YaHei UI` is not installed. New builds keep
-an explicitly selected font and add installed CJK fallbacks for the chosen IDE
-language, independently of the Windows system language. Interface font sizes use
-points so that Qt handles per-screen scaling.
+Use Tools > Options > Environment > Appearance > Language to choose the IDE
+language. Save the settings and restart the IDE for translations to take effect.
+The interface font and font size can be selected on the same page.
 
 ## Build and release
 
 The `Release Windows session AI build` GitHub Actions workflow runs for tags
 matching `session-ai-v*`. It can also be run manually with an existing tag.
-It builds with MSVC and Qt 6.8.3, runs editor, provider selection, filename and interface font tests (including
-150% scaling), checks required
+It builds with MSVC and Qt 6.8.3, runs editor, provider selection and filename tests, checks required
 package files, computes SHA-256 checksums and publishes a GitHub prerelease only
 when the build and tests succeed. The release job has repository contents write
 permission; the build job has read permission. No personal API token is needed.

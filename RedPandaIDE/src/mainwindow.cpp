@@ -50,7 +50,6 @@
 #include <QStandardPaths>
 #include <QDockWidget>
 #include "utils/codenaming.h"
-#include "utils/font.h"
 #include "widgets/aifilenamewidget.h"
 #include "ui_mainwindow.h"
 #include "editormanager.h"
@@ -1128,9 +1127,9 @@ void MainWindow::applySettings()
 
     updateEditorColorSchemes();
 
-    const QFont font = makeInterfaceFont(pSettings->environment().interfaceFont(),
-                                         pSettings->environment().interfaceFontSize(),
-                                         pSettings->environment().language());
+    QFont font(pSettings->environment().interfaceFont());
+    font.setPixelSize(pointToPixel(pSettings->environment().interfaceFontSize()));
+    font.setStyleStrategy(QFont::PreferAntialias);
     qApp->setFont(font);
     this->setFont(font);
     foreach (QWidget* p, findChildren<QWidget*>()) {
@@ -1151,7 +1150,7 @@ void MainWindow::applySettings()
 
     QFont caseEditorFont(pSettings->executor().caseEditorFontName());
     caseEditorFont.setPixelSize(pointToPixel(pSettings->executor().caseEditorFontSize()));
-    caseEditorFont.setStyleStrategy(QFont::PreferAntialias);
+    font.setStyleStrategy(QFont::PreferAntialias);
     ui->txtProblemCaseInput->setFont(caseEditorFont);
     ui->lblProblemCaseInput->setFont(caseEditorFont);
     ui->txtProblemCaseOutput->setFont(caseEditorFont);

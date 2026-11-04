@@ -9,7 +9,7 @@ on:
       tag:
         description: Existing session-ai-v tag to build and publish
         required: true
-        default: session-ai-v3.6.0-alpha1.2
+        default: session-ai-v3.6.0-alpha1.3
         type: string
 
 permissions:
@@ -65,7 +65,7 @@ jobs:
           $qtDir = "$env:RUNNER_WORKSPACE/Qt/6.8.3/msvc2022_64"
           ./packages/msvc/build.ps1 -QtDir $qtDir
           $env:QT_QPA_PLATFORM = 'offscreen'
-          ctest --test-dir build/msvc-x64 -R '^(test-editor|test-codenaming|test-interfacefont|test-interfacefont-scaled)$' --output-on-failure
+          ctest --test-dir build/msvc-x64 -R '^(test-editor|test-codenaming)$' --output-on-failure
 
           $pkg = 'build/msvc-x64-pkg/RedPanda-CPP'
           $redist = Get-ChildItem "$VsInstallPath/VC/Redist/MSVC" -Directory |
@@ -121,7 +121,7 @@ jobs:
           cat > release-notes.md <<'NOTES'
           Windows 64 位便携版（Qt 6.8.3 / MSVC），包含独立会话代码目录和 AI API 文件命名组件。
 
-          此版本修复中文界面字体回退与字号缩放，并新增 OpenAI / DeepSeek / 自定义接口预设和可编辑的模型选择。
+          此版本新增 OpenAI / DeepSeek / 自定义接口预设和可编辑的模型选择。
 
           使用方法：下载 windows-x64.zip，完整解压后运行 RedPanda-CPP/RedPandaIDE.exe。
           支持 Windows 10 1809 及更新版本，包含 Qt 和 MSVC 运行库。

@@ -69,7 +69,7 @@ xmake
 
 ## 测试
 
-测试使用 Qt Test（`Qt::Test`）。测试程序：`test-cppparser`、`test-editor`（均位于 `RedPandaIDE/test/`），`test-codenaming`（会话目录、文件名清理和避免覆盖）、`test-interfacefont`（界面字体及中文回退，另在 150% 缩放下运行），以及 qsynedit 测试套件（`libs/qsynedit/test/`）。CTest 已在根目录 `CMakeLists.txt` 中接好。
+测试使用 Qt Test（`Qt::Test`）。测试程序：`test-cppparser`、`test-editor`（均位于 `RedPandaIDE/test/`），`test-codenaming`（会话目录、文件名清理和避免覆盖），以及 qsynedit 测试套件（`libs/qsynedit/test/`）。CTest 已在根目录 `CMakeLists.txt` 中接好。
 
 ```sh
 # CMake：构建全部测试目标，然后运行（GUI 测试使用 offscreen）
