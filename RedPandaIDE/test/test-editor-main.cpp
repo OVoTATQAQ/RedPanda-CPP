@@ -2,6 +2,7 @@
 #include <QGuiApplication>
 #include "test_editor_symbol_completion.h"
 #include "test_editor_session_save.h"
+#include "test_ai_filename_widget.h"
 
 int main(int argc, char *argv[]) {
     int status = 0;
@@ -16,6 +17,10 @@ int main(int argc, char *argv[]) {
 
     {
         TestEditorSessionSave tc;
+        status |= QTest::qExec(&tc, argc, argv);
+    }
+    {
+        TestAiFilenameWidget tc;
         status |= QTest::qExec(&tc, argc, argv);
     }
     return status;

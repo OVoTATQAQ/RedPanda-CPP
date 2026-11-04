@@ -366,7 +366,7 @@ int main(int argc, char *argv[])
         if (firstRun) {
             //set theme
             ChooseThemeDialog themeDialog;
-            themeDialog.setFont(QFont(defaultUiFont(),11));
+            themeDialog.setFont(makeInterfaceFont(defaultUiFont(language), 11, language));
             themeDialog.exec();
             switch (themeDialog.theme()) {
             case ChooseThemeDialog::Theme::AutoFollowSystem:

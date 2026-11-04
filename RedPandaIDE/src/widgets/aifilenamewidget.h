@@ -18,9 +18,12 @@
 #define AIFILENAMEWIDGET_H
 #include <QWidget>
 #include <QPointer>
+#include <QHash>
+#include <QPair>
 #include <functional>
 class Editor;
 class QLabel;
+class QComboBox;
 class QLineEdit;
 class QPushButton;
 class QNetworkAccessManager;
@@ -30,11 +33,15 @@ public:
     AiFilenameWidget(std::function<Editor *()> currentEditor,
                      const QString &settingsFile, QWidget *parent = nullptr);
 private:
+    void changeProvider();
     void generate();
     void saveSuggested();
     std::function<Editor *()> mCurrentEditor;
     QString mSettingsFile;
-    QLineEdit *mEndpoint, *mModel, *mKey, *mName;
+    QLineEdit *mEndpoint, *mKey, *mName;
+    QComboBox *mProvider, *mModel;
+    QString mCurrentProvider;
+    QHash<QString, QPair<QString, QString>> mProviderConfigs;
     QLabel *mStatus;
     QPushButton *mGenerate, *mSave;
     QNetworkAccessManager *mNetwork;

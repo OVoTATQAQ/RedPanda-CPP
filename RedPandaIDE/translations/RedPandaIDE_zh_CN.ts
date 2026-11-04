@@ -12897,5 +12897,10 @@ p, li { white-space: pre-wrap; }
 <message><source>Cannot create file: %1</source><translation>无法创建文件：%1</translation></message>
 <message><source>Could not save the file.</source><translation>无法保存文件。</translation></message>
 <message><source>Saved: %1</source><translation>已保存：%1</translation></message>
+<message><source>Provider</source><translation>服务商</translation></message>
+<message><source>Custom (OpenAI compatible)</source><translation>自定义（OpenAI 兼容）</translation></message>
+<message><source>Full HTTPS chat completions URL.</source><translation>完整的 HTTPS 聊天补全接口地址。</translation></message>
+<message><source>Choose a model or enter the model ID supported by your provider.</source><translation>可选择常用模型，或输入服务商支持的模型 ID。</translation></message>
+<message><source>Enter the API key for the selected provider.</source><translation>请填写当前服务商的 API 密钥。</translation></message>
 </context>
 </TS>

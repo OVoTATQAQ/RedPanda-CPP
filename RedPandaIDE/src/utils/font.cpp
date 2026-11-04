@@ -18,6 +18,7 @@
 #include "font.h"
 
 #include <QFont>
+#include <QFontDatabase>
 #include <QVersionNumber>
 #include <QMap>
 
@@ -69,33 +70,48 @@ static const QMap<QLocale::Script, QStringList> uiFontsByScript = {
 
 #endif
 
-QString defaultUiFont()
+static QStringList uiFontCandidates(const QString &localeName)
 {
-    QString defaultLocaleName = QLocale::system().name();
-    QLocale::Script defaultScript = QLocale::system().script();
-    if (uiFontsByLocale.contains(defaultLocaleName)) {
-        QStringList fonts = uiFontsByLocale[defaultLocaleName];
-        for (const QString &font : fonts) {
-            if (QFont(font).exactMatch())
-                return font;
-        }
-    }
-    if (uiFontsByScript.contains(defaultScript)) {
-        QStringList fonts = uiFontsByScript[defaultScript];
-        for (const QString &font : fonts) {
-            if (QFont(font).exactMatch())
-                return font;
-        }
-    }
+    QLocale locale(localeName);
+    QStringList candidates = uiFontsByLocale.value(locale.name());
+    candidates += uiFontsByScript.value(locale.script());
+    candidates.removeDuplicates();
+    return candidates;
+}
 
-    // final fallback
-#if defined(Q_OS_WIN)
-    return "Microsoft Sans Serif";
-#elif defined(Q_OS_MACOS)
-    return "Helvetica Neue";
-#else // XDG desktop
-    return "Sans Serif";
-#endif
+QString defaultUiFont(const QString &localeName)
+{
+    const QStringList installed = QFontDatabase().families();
+    for (const QString &family : uiFontCandidates(localeName)) {
+        // exactMatch also checks size and style; it can reject an installed family.
+        if (installed.contains(family, Qt::CaseInsensitive))
+            return family;
+    }
+    return QFontDatabase::systemFont(QFontDatabase::GeneralFont).family();
+}
+
+QFont makeInterfaceFont(const QString &configuredFamily, int pointSize,
+                        const QString &localeName)
+{
+    const QStringList installed = QFontDatabase().families();
+    QStringList families;
+    const QStringList genericFamilies{"Sans Serif", "Serif", "Monospace"};
+    if (installed.contains(configuredFamily, Qt::CaseInsensitive)
+            || genericFamilies.contains(configuredFamily, Qt::CaseInsensitive))
+        families.append(configuredFamily);
+    else
+        families.append(defaultUiFont(localeName));
+    for (const QString &family : uiFontCandidates(localeName)) {
+        if (installed.contains(family, Qt::CaseInsensitive)
+                && !families.contains(family, Qt::CaseInsensitive))
+            families.append(family);
+    }
+    QFont font;
+    font.setFamilies(families);
+    // Let Qt scale points for each screen instead of baking a global DPI into pixels.
+    font.setPointSize(qMax(1, pointSize));
+    font.setStyleStrategy(QFont::PreferAntialias);
+    return font;
 }
 
 QString defaultMonoFont()

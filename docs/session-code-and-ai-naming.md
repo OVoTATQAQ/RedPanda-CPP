@@ -15,11 +15,26 @@ and falls back to the original Save As workflow.
 
 ## AI filename panel
 
-Open **View > AI filename**. Enter the full HTTPS URL of an OpenAI-compatible
-chat completions endpoint (for example `https://api.openai.com/v1/chat/completions`),
-a supported model name and your API key. The URL and model are stored in the IDE
-settings; the key remains in memory for this run only. The API service may charge
-for requests.
+Open **View > AI filename** and choose a provider:
+
+| Provider | Default full chat completions URL | Suggested models |
+| --- | --- | --- |
+| OpenAI | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-4.1` |
+| DeepSeek | `https://api.deepseek.com/chat/completions` | `deepseek-chat`, `deepseek-reasoner` |
+| Custom (OpenAI compatible) | Enter your provider's full HTTPS URL | Enter your provider's model ID |
+
+The model selector is editable; presets are examples, not a list of supported
+models guaranteed by the provider. DeepSeek's `/v1/chat/completions` URL also
+works. APIs must accept OpenAI Chat Completions `messages` and return
+`choices[0].message.content`. Native Responses, Anthropic or Gemini protocols
+are not supported by this client.
+
+Enter the selected provider's API key. Switching providers clears the key and
+remembers the endpoint and model for each provider during the session. The active
+provider's non-secret configuration is saved when a valid generation request is
+sent. Older manually configured endpoints and models are preserved. The key
+remains in memory for this run only. The API service may charge for requests.
+Provider fields are locked while a request is running.
 
 Select a standalone file, then click **Generate filename**. Only this action sends
 the current editor text to the selected API. Files must be nonempty and at most

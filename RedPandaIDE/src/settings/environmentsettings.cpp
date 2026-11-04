@@ -41,10 +41,10 @@ void EnvironmentSettings::doLoad()
 {
     //Appearance
     mTheme = stringValue("theme","dark");
-    mInterfaceFont = stringValue("interface_font", defaultUiFont());
+    mLanguage = stringValue("language", QLocale::system().name());
+    mInterfaceFont = stringValue("interface_font", defaultUiFont(mLanguage));
     mInterfaceFontSize = intValue("interface_font_size",11);
     mIconZoomFactor = doubleValue("icon_zoom_factor",1.0);
-    mLanguage = stringValue("language", QLocale::system().name());
     mIconSet = stringValue("icon_set","contrast");
     mUseCustomIconSet = boolValue("use_custom_icon_set", false);
     mComboboxWheel = boolValue("enable_combobox_wheel", false);

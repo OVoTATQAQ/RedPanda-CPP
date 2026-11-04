@@ -253,6 +253,7 @@ target_qt_plain_cpp(test-editor
     )
 
 target_moc_classes(test-editor
+    src/widgets/aifilenamewidget
     src/editor
 
     src/widgets/bookmarkmodel
@@ -266,6 +267,7 @@ target_moc_classes(test-editor
     src/codesnippetsmanager
     #test
     test/test_editor_base
+    test/test_ai_filename_widget
     test/test_editor_session_save
     test/test_editor_symbol_completion
 )
@@ -274,6 +276,7 @@ target_include_directories(test-editor PRIVATE
 
 target_link_libraries(test-editor PRIVATE
         Qt::Core
+        Qt::Network
         Qt::Gui
         Qt::PrintSupport
         Qt::Svg
@@ -581,3 +584,11 @@ target_include_directories(test-codenaming PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test-codenaming PRIVATE Qt::Core Qt::Test)
 add_test(NAME test-codenaming COMMAND test-codenaming)
 add_dependencies(all-test-targets test-codenaming)
+
+add_executable(test-interfacefont test/test-interfacefont.cpp src/utils/font.cpp)
+target_include_directories(test-interfacefont PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test-interfacefont PRIVATE Qt::Widgets Qt::Test)
+add_test(NAME test-interfacefont COMMAND test-interfacefont)
+add_test(NAME test-interfacefont-scaled COMMAND test-interfacefont)
+set_tests_properties(test-interfacefont-scaled PROPERTIES ENVIRONMENT "QT_SCALE_FACTOR=1.5")
+add_dependencies(all-test-targets test-interfacefont)
