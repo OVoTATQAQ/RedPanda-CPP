@@ -84,6 +84,8 @@ CI（`.github/workflows/unit.yml`）在 Ubuntu + Qt 5 上运行的正是上述�
 - `addon/gen.sh` 的输出已提交（运行后 `git diff --exit-code` 必须干净）。
 - `libs/lua/lua/` 与上游 Lua v5.4.6 完全一致。
 
+自定义 Windows x64 预发布：`.github/workflows/release-session-ai.yml`，由 `session-ai-v*` 标签触发，构建并测试后上传到 GitHub Releases。说明见 `docs/session-ai-windows-release.md`。
+
 打包工作流：`.github/workflows/build.yml`（发行版包）、`build-app.yml`（独立应用）、`feature-matrix.yml`、`winget.yml`。
 
 ## 代码风格与约定

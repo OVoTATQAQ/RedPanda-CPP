@@ -1,0 +1,138 @@
+name: Release Windows session AI build
+
+on:
+  push:
+    tags:
+      - 'session-ai-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing session-ai-v tag to build and publish
+        required: true
+        default: session-ai-v3.6.0-alpha1.1
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-session-ai-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  windows:
+    name: Build and test Windows x64
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^session-ai-v[0-9A-Za-z._-]+$') {
+            throw 'Expected a session-ai-v release tag.'
+          }
+          $tagCommit = git rev-parse "refs/tags/$env:RELEASE_TAG^{commit}"
+          if ($LASTEXITCODE -ne 0 -or $tagCommit -ne (git rev-parse HEAD)) {
+            throw 'The release tag must point to the checked out source.'
+          }
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          archives: qtbase qtsvg qttools qttranslations
+          cache: true
+
+      - name: Build, test and package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $VsInstallPath = 'C:/Program Files/Microsoft Visual Studio/2022/Enterprise'
+          Import-Module "$VsInstallPath/Common7/Tools/Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -Arch amd64 -VsInstallPath $VsInstallPath -SkipAutomaticLocation
+          $qtDir = "$env:RUNNER_WORKSPACE/Qt/6.8.3/msvc2022_64"
+          ./packages/msvc/build.ps1 -QtDir $qtDir
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          ctest --test-dir build/msvc-x64 -R '^(test-editor|test-codenaming)$' --output-on-failure
+
+          $pkg = 'build/msvc-x64-pkg/RedPanda-CPP'
+          $redist = Get-ChildItem "$VsInstallPath/VC/Redist/MSVC" -Directory |
+            Sort-Object Name -Descending |
+            Where-Object { Test-Path "$($_.FullName)/x64/Microsoft.VC143.CRT" } |
+            Select-Object -First 1
+          if (-not $redist) { throw 'MSVC runtime libraries were not found.' }
+          Copy-Item "$($redist.FullName)/x64/Microsoft.VC143.CRT/*.dll" $pkg
+          Copy-Item docs/session-code-and-ai-naming.md $pkg
+          Copy-Item docs/session-ai-windows-release.md "$pkg/START-HERE.md"
+          foreach ($file in @('RedPandaIDE.exe', 'Qt6Core.dll', 'Qt6Network.dll',
+                             'Qt6Svg.dll', 'platforms/qwindows.dll', 'vcruntime140.dll',
+                             'consolepauser.exe', 'LICENSE')) {
+            if (-not (Test-Path "$pkg/$file")) { throw "Missing package file: $file" }
+          }
+          $archive = "RedPandaCPP-$env:RELEASE_TAG-windows-x64.zip"
+          Compress-Archive -Path $pkg -DestinationPath "dist/$archive" -Force
+          $hash = (Get-FileHash "dist/$archive" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $archive" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          git rev-parse HEAD | Set-Content dist/SOURCE-COMMIT.txt -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-release
+          path: |
+            dist/RedPandaCPP-*-windows-x64.zip
+            dist/SHA256SUMS.txt
+            dist/SOURCE-COMMIT.txt
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub prerelease
+    needs: windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-x64-release
+          path: dist
+
+      - name: Verify and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum --check SHA256SUMS.txt
+          cat > release-notes.md <<'NOTES'
+          Windows 64 位便携版（Qt 6.8.3 / MSVC），包含独立会话代码目录和 AI API 文件命名组件。
+
+          使用方法：下载 windows-x64.zip，完整解压后运行 RedPanda-CPP/RedPandaIDE.exe。
+          支持 Windows 10 1809 及更新版本，包含 Qt 和 MSVC 运行库。
+          本包不含 GCC/MinGW、GDB 或 AStyle；编译、调试和代码格式化需配置相应外部工具。
+
+          每次启动会在“文档/RedPandaCPP/Sessions”下创建独立目录，新文件按 Ctrl+S 即可保存。
+          通过“视图 → AI 文件命名”配置兼容 OpenAI 的 HTTPS API、模型及密钥。
+          仅点击生成时发送当前代码；密钥仅保留在本次运行中。真实 API 调用未纳入自动测试。
+          这是基于 alpha 源码的自定义预发布版本，非原作者的官方发行版。
+
+          包含 SHA256SUMS.txt 校验和及 SOURCE-COMMIT.txt 源码提交记录。
+          NOTES
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease \
+            --title "RedPanda C++ Session AI — Windows x64 ($RELEASE_TAG)" \
+            --notes-file release-notes.md \
+            RedPandaCPP-*-windows-x64.zip SHA256SUMS.txt SOURCE-COMMIT.txt
