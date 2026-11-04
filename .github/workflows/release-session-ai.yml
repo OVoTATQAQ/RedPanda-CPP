@@ -9,7 +9,7 @@ on:
       tag:
         description: Existing session-ai-v tag to build and publish
         required: true
-        default: session-ai-v3.6.0-alpha1.3
+        default: session-ai-v3.6.0-alpha1.4
         type: string
 
 permissions:
@@ -121,13 +121,14 @@ jobs:
           cat > release-notes.md <<'NOTES'
           Windows 64 位便携版（Qt 6.8.3 / MSVC），包含独立会话代码目录和 AI API 文件命名组件。
 
-          此版本新增 OpenAI / DeepSeek / 自定义接口预设和可编辑的模型选择。
+          此版本包含 OpenAI / DeepSeek / 自定义接口预设和可编辑的模型选择。
+          新增“工具 → 选项 → 编辑器 → 新文件保存”，可配置保存根目录、子目录规则、文件名规则和首次保存方式。
 
           使用方法：下载 windows-x64.zip，完整解压后运行 RedPanda-CPP/RedPandaIDE.exe。
           支持 Windows 10 1809 及更新版本，包含 Qt 和 MSVC 运行库。
           本包不含 GCC/MinGW、GDB 或 AStyle；编译、调试和代码格式化需配置相应外部工具。
 
-          每次启动会在“文档/RedPandaCPP/Sessions”下创建独立目录，新文件按 Ctrl+S 即可保存。
+          默认每次启动会在“文档/RedPandaCPP/Sessions”下创建独立目录，新文件按 Ctrl+S 即可保存；也可在设置中选择按日分组、固定目录、时间命名或首次另存为。
           通过“视图 → AI 文件命名”选择 DeepSeek、OpenAI 或自定义兼容接口，再填写模型及密钥。
           仅点击生成时发送当前代码；密钥仅保留在本次运行中。真实 API 调用未纳入自动测试。
           这是基于 alpha 源码的自定义预发布版本，非原作者的官方发行版。

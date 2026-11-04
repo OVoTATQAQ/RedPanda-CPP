@@ -897,7 +897,10 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QString newFileSaveDirectory();
     QString mSessionCodeDirectory;
+    QString mSessionCodeRoot;
+    QString mNewFileSaveError;
     bool mFullInitialized;
     EditorManager *mEditorManager;
     QLabel *mFileInfoStatus;

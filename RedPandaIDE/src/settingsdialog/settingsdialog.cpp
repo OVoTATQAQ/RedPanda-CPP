@@ -31,6 +31,7 @@
 #include "editorsymbolcompletionwidget.h"
 #include "editortooltipswidget.h"
 #include "editorautosavewidget.h"
+#include "editornewfileswidget.h"
 #include "editorsnippetwidget.h"
 #include "editorcustomctypekeywords.h"
 #include "editormiscwidget.h"
@@ -178,6 +179,9 @@ PSettingsDialog SettingsDialog::optionDialog(ColorManager *colorManager, IconsMa
     dialog->addWidget(widget);
 
     widget = new CompilerNASMWidget(tr("NASM"),tr("Compiler"),iconsManager);
+    dialog->addWidget(widget);
+
+    widget = new EditorNewFilesWidget(tr("New File Saving"), tr("Editor"), iconsManager);
     dialog->addWidget(widget);
 
     widget = new EditorGeneralWidget(tr("General"),tr("Editor"),iconsManager);

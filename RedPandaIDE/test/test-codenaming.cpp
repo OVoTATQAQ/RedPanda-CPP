@@ -57,6 +57,27 @@ private slots:
         QCOMPARE(original.readAll(), QByteArray("old code"));
         QVERIFY(CodeNaming::reserveFile(root.filePath("missing/file.cpp")).isEmpty());
     }
+    void configurableDirectories() {
+        QTemporaryDir root;
+        QString daily = CodeNaming::createSaveDirectory(root.path(), CodeNaming::FolderRule::PerDay);
+        QCOMPARE(daily, root.filePath(QDate::currentDate().toString("yyyy-MM-dd")));
+        QCOMPARE(CodeNaming::createSaveDirectory(root.path(), CodeNaming::FolderRule::PerDay), daily);
+        QCOMPARE(CodeNaming::createSaveDirectory(root.path(), CodeNaming::FolderRule::Fixed), root.path());
+        QString session = CodeNaming::createSaveDirectory(root.path(), CodeNaming::FolderRule::PerSession);
+        QVERIFY(!session.isEmpty());
+        QVERIFY(session != daily && session != root.path());
+        QVERIFY(QDir(session).exists());
+        QString error;
+        QVERIFY(CodeNaming::createSaveDirectory("relative/path", CodeNaming::FolderRule::Fixed, &error).isEmpty());
+        QVERIFY(!error.isEmpty());
+    }
+    void configurableDefaultNames() {
+        QCOMPARE(CodeNaming::defaultFileStem(CodeNaming::FilenameRule::Numbered, 17), QString("untitled17"));
+        QString timestamp = CodeNaming::defaultFileStem(CodeNaming::FilenameRule::Timestamp, 17);
+        QVERIFY(timestamp.startsWith("code_"));
+        QVERIFY(timestamp.endsWith("_17"));
+        QVERIFY(!timestamp.contains('/') && !timestamp.contains(':'));
+    }
     void untrustedNames() {
         QCOMPARE(CodeNaming::safeStem("../../a/b: c?*"), QString("a_b_c"));
         QCOMPARE(CodeNaming::safeStem("CON"), QString("code_CON"));

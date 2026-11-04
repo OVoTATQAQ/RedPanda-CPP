@@ -21,6 +21,38 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QUuid>
+#include <QStandardPaths>
+
+QString CodeNaming::defaultSaveRoot()
+{
+    QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    if (documents.isEmpty()) documents = QDir::homePath();
+    return QDir(documents).filePath("RedPandaCPP/Sessions");
+}
+
+QString CodeNaming::createSaveDirectory(const QString &root, FolderRule rule, QString *error)
+{
+    if (root.isEmpty() || !QDir::isAbsolutePath(root)) {
+        if (error) *error = root;
+        return {};
+    }
+    if (rule == FolderRule::PerSession)
+        return createSessionDirectory(root, error);
+    QDir directory(rule == FolderRule::PerDay
+                   ? QDir(root).filePath(QDate::currentDate().toString("yyyy-MM-dd")) : root);
+    if (directory.mkpath("."))
+        return directory.absolutePath();
+    if (error) *error = directory.absolutePath();
+    return {};
+}
+
+QString CodeNaming::defaultFileStem(FilenameRule rule, int number)
+{
+    if (rule == FilenameRule::Timestamp)
+        return "code_" + QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm-ss-zzz")
+                + "_" + QString::number(number);
+    return QString("untitled%1").arg(number);
+}
 
 QString CodeNaming::createSessionDirectory(const QString &root, QString *error)
 {

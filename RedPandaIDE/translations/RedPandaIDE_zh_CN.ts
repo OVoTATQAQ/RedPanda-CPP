@@ -5027,6 +5027,8 @@ p, li { white-space: pre-wrap; }
 </context>
 <context>
     <name>MainWindow</name>
+<message><source>Cannot create the code folder in %1. New files will use Save As.</source><translation>无法在 %1 创建代码目录。新文件将使用“另存为”。</translation></message>
+
 <message><source>AI filename</source><translation>AI 文件命名</translation></message>
 <message><source>Code folder</source><translation>代码目录</translation></message>
 <message><source>Cannot create a session folder in %1. New files will use Save As.</source><translation>无法在 %1 创建本次运行的代码目录。新文件将使用“另存为”。</translation></message>
@@ -11812,6 +11814,8 @@ p, li { white-space: pre-wrap; }
 </context>
 <context>
     <name>SettingsDialog</name>
+<message><source>New File Saving</source><translation>新文件保存</translation></message>
+
     <message>
         <location filename="../src/settingsdialog/settingsdialog.ui" line="+14"/>
         <location filename="../src/settingsdialog/settingsdialog.cpp" line="+144"/>
@@ -12902,5 +12906,22 @@ p, li { white-space: pre-wrap; }
 <message><source>Full HTTPS chat completions URL.</source><translation>完整的 HTTPS 聊天补全接口地址。</translation></message>
 <message><source>Choose a model or enter the model ID supported by your provider.</source><translation>可选择常用模型，或输入服务商支持的模型 ID。</translation></message>
 <message><source>Enter the API key for the selected provider.</source><translation>请填写当前服务商的 API 密钥。</translation></message>
+</context>
+<context>
+<name>EditorNewFilesWidget</name>
+<message><source>Browse...</source><translation>浏览……</translation></message>
+<message><source>A separate folder for each launch</source><translation>每次启动创建独立目录</translation></message>
+<message><source>One folder per day (yyyy-MM-dd)</source><translation>按日期分组（yyyy-MM-dd）</translation></message>
+<message><source>Use the selected folder directly</source><translation>直接使用所选目录</translation></message>
+<message><source>Numbered names (untitled1.cpp)</source><translation>按编号命名（untitled1.cpp）</translation></message>
+<message><source>Timestamp names (code_date_time.cpp)</source><translation>按时间命名（code_日期_时间.cpp）</translation></message>
+<message><source>Save new files directly using the default name on first Save</source><translation>首次保存新文件时直接使用默认文件名</translation></message>
+<message><source>Save folder:</source><translation>保存根目录：</translation></message>
+<message><source>Subfolder rule:</source><translation>子目录规则：</translation></message>
+<message><source>Filename rule:</source><translation>文件名规则：</translation></message>
+<message><source>When unchecked, the first Save opens Save As in the chosen folder. Occupied names receive a numeric suffix when saving directly. Settings apply to standalone files created afterwards; existing files keep their paths.</source><translation>取消勾选后，首次保存将在所选目录打开“另存为”。直接保存遇到重名时会自动加编号。这些设置用于之后新建的独立文件（非项目文件），已有文件路径保持原样。</translation></message>
+<message><source>Select the code save folder</source><translation>选择代码保存目录</translation></message>
+<message><source>Please choose an absolute save folder path.</source><translation>请选择绝对路径作为保存目录。</translation></message>
+<message><source>Example path: %1</source><translation>示例路径：%1</translation></message>
 </context>
 </TS>

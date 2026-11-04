@@ -21,6 +21,9 @@ class TestEditorSessionSave : public TestEditorBase {
     Q_OBJECT
 private slots:
     void saveNewAndUpdate();
+    void settingsRoundTrip();
+    void invalidRulesUseDefaults();
+    void manualFirstSaveCanBeCancelled();
     void collisionKeepsOriginal();
 };
 #endif

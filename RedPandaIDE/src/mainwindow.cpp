@@ -143,14 +143,7 @@ MainWindow::MainWindow(QWidget *parent)
       mCompileIssuesState{CompileIssuesState::None}
 {
     ui->setupUi(this);
-    QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    if (documents.isEmpty()) documents = QDir::homePath();
-    QString sessionError;
-    mSessionCodeDirectory = CodeNaming::createSessionDirectory(
-                QDir(documents).filePath("RedPandaCPP/Sessions"), &sessionError);
-    if (mSessionCodeDirectory.isEmpty())
-        QMessageBox::warning(this, tr("Code folder"),
-                             tr("Cannot create a session folder in %1. New files will use Save As.").arg(sessionError));
+    newFileSaveDirectory();
 
     /** Msys2 MinGW 64 Qt 6.8.0 fix: Crash when debug **/
 // #if defined(QT_DEBUG) && QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR == 8
@@ -3736,12 +3729,44 @@ void MainWindow::updateTools()
     }
 }
 
+QString MainWindow::newFileSaveDirectory()
+{
+    const QString root = pSettings->editor().newFileSaveRoot();
+    const auto rule = pSettings->editor().newFileFolderRule();
+    QString error;
+    QString directory;
+    if (rule == CodeNaming::FolderRule::PerSession && mSessionCodeRoot == root
+            && !mSessionCodeDirectory.isEmpty()) {
+        if (QDir().mkpath(mSessionCodeDirectory))
+            directory = mSessionCodeDirectory;
+        else
+            error = mSessionCodeDirectory;
+    } else {
+        directory = CodeNaming::createSaveDirectory(root, rule, &error);
+        if (rule == CodeNaming::FolderRule::PerSession && !directory.isEmpty()) {
+            mSessionCodeRoot = root;
+            mSessionCodeDirectory = directory;
+        }
+    }
+    if (directory.isEmpty()) {
+        if (mNewFileSaveError != error) {
+            QMessageBox::warning(this, tr("Code folder"),
+                                 tr("Cannot create the code folder in %1. New files will use Save As.").arg(error));
+            mNewFileSaveError = error;
+        }
+    } else {
+        mNewFileSaveError.clear();
+    }
+    return directory;
+}
+
 void MainWindow::newEditor(const QString& suffix)
 {
     try {
+        const QString saveDirectory = newFileSaveDirectory();
         QString filename;
         do {
-            filename = QString("untitled%1").arg(getNewFileNumber());
+            filename = CodeNaming::defaultFileStem(pSettings->editor().newFileNameRule(), getNewFileNumber());
             if (suffix.isEmpty()) {
                 if (pSettings->editor().defaultFileCpp()) {
                     PCompilerSet compilerSet = pSettings->compilerSets().defaultSet();
@@ -3755,14 +3780,14 @@ void MainWindow::newEditor(const QString& suffix)
             } else
                 filename+= "." + suffix;
 
-            if (!mSessionCodeDirectory.isEmpty())
-                filename = QDir(mSessionCodeDirectory).filePath(filename);
+            if (!saveDirectory.isEmpty())
+                filename = QDir(saveDirectory).filePath(filename);
         } while(mEditorManager->hasFilename(filename) || QFileInfo::exists(filename));
         Editor * editor=mEditorManager->newEditor(filename,
                                                pSettings->editor().defaultEncoding(),
                                                FileType::None, QString(),
                                                false,true);
-        editor->setProperty("sessionCodeFile", !mSessionCodeDirectory.isEmpty());
+        editor->setProperty("sessionCodeFile", !saveDirectory.isEmpty() && pSettings->editor().newFileAutoSave());
         mEditorManager->activeEditor(editor,true);
         //updateForEncodingInfo();
     }  catch (FileError e) {

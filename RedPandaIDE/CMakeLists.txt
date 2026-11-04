@@ -57,6 +57,7 @@ target_qt_plain_cpp(RedPandaIDE
     )
 
 target_moc_classes(RedPandaIDE
+    src/settingsdialog/editornewfileswidget
     src/widgets/aifilenamewidget
     src/caretlist
     src/codesnippetsmanager

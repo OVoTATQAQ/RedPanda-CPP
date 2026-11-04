@@ -122,6 +122,7 @@ target("RedPandaIDE")
         "src/utils/ui.cpp")
 
     add_moc_classes(
+        "src/settingsdialog/editornewfileswidget",
         "src/widgets/aifilenamewidget",
         "src/caretlist",
         "src/codesnippetsmanager",

@@ -18,6 +18,11 @@
 #define CODENAMING_H
 #include <QString>
 namespace CodeNaming {
+enum class FolderRule { PerSession = 0, PerDay = 1, Fixed = 2 };
+enum class FilenameRule { Numbered = 0, Timestamp = 1 };
+QString defaultSaveRoot();
+QString createSaveDirectory(const QString &root, FolderRule rule, QString *error = nullptr);
+QString defaultFileStem(FilenameRule rule, int number);
 QString createSessionDirectory(const QString &root, QString *error = nullptr);
 QString safeStem(const QString &suggestion);
 // Atomically reserve an unused destination. The caller must remove it on failure.

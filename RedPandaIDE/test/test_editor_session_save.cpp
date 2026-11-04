@@ -19,6 +19,11 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QFileDialog>
+#include <QTimer>
+#include <QScopeGuard>
+#include "src/systemconsts.h"
+#include "src/settings/editorsettings.h"
 
 void TestEditorSessionSave::saveNewAndUpdate()
 {
@@ -58,4 +63,80 @@ void TestEditorSessionSave::collisionKeepsOriginal()
     QCOMPARE(mEditor->filename(), root.filePath("untitled1_1.cpp"));
     QVERIFY(original.open(QIODevice::ReadOnly));
     QCOMPARE(original.readAll(), QByteArray("previous code"));
+}
+
+void TestEditorSessionSave::settingsRoundTrip()
+{
+    QTemporaryDir root;
+    const QString config = root.filePath("settings.ini");
+    {
+        SettingsPersistor persistor(config);
+        EditorSettings settings(&persistor);
+        settings.load();
+        QCOMPARE(settings.newFileSaveRoot(), CodeNaming::defaultSaveRoot());
+        QCOMPARE(settings.newFileFolderRule(), CodeNaming::FolderRule::PerSession);
+        QCOMPARE(settings.newFileNameRule(), CodeNaming::FilenameRule::Numbered);
+        QVERIFY(settings.newFileAutoSave());
+        settings.setNewFileSaveRoot(root.filePath("code"));
+        settings.setNewFileFolderRule(CodeNaming::FolderRule::PerDay);
+        settings.setNewFileNameRule(CodeNaming::FilenameRule::Timestamp);
+        settings.setNewFileAutoSave(false);
+        settings.save();
+        QCOMPARE(persistor.sync(), QSettings::NoError);
+    }
+    SettingsPersistor persistor(config);
+    EditorSettings restored(&persistor);
+    restored.load();
+    QCOMPARE(restored.newFileSaveRoot(), root.filePath("code"));
+    QCOMPARE(restored.newFileFolderRule(), CodeNaming::FolderRule::PerDay);
+    QCOMPARE(restored.newFileNameRule(), CodeNaming::FilenameRule::Timestamp);
+    QVERIFY(!restored.newFileAutoSave());
+}
+
+void TestEditorSessionSave::invalidRulesUseDefaults()
+{
+    QTemporaryDir root;
+    const QString config = root.filePath("settings.ini");
+    {
+        QSettings settings(config, QSettings::IniFormat);
+        settings.setValue("Editor/new_file_save_root", "relative/path");
+        settings.setValue("Editor/new_file_folder_rule", 99);
+        settings.setValue("Editor/new_file_name_rule", -1);
+    }
+    SettingsPersistor persistor(config);
+    EditorSettings restored(&persistor);
+    restored.load();
+    QCOMPARE(restored.newFileSaveRoot(), CodeNaming::defaultSaveRoot());
+    QCOMPARE(restored.newFileFolderRule(), CodeNaming::FolderRule::PerSession);
+    QCOMPARE(restored.newFileNameRule(), CodeNaming::FilenameRule::Numbered);
+}
+
+void TestEditorSessionSave::manualFirstSaveCanBeCancelled()
+{
+    SystemConsts systemConsts;
+    auto originalConsts = pSystemConsts;
+    pSystemConsts = &systemConsts;
+    auto restoreConsts = qScopeGuard([originalConsts]() { pSystemConsts = originalConsts; });
+    init_editor();
+    QTemporaryDir root;
+    QString name = root.filePath("untitled1.cpp");
+    mEditor->setFilename(name);
+    mEditor->setProperty("sessionCodeFile", false);
+    mEditor->loadContent(QString("int main() {}"));
+    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+    bool dialogShown = false;
+    QTimer::singleShot(0, [&dialogShown]() {
+        for (QWidget *widget : QApplication::topLevelWidgets()) {
+            if (auto dialog = qobject_cast<QFileDialog *>(widget)) {
+                dialogShown = true;
+                dialog->reject();
+            }
+        }
+    });
+    QVERIFY(!mEditor->save(false, false));
+    QVERIFY(dialogShown);
+    QVERIFY(mEditor->isNew());
+    QCOMPARE(mEditor->filename(), name);
+    QVERIFY(!QFile::exists(name));
+    QVERIFY(mEditor->text().contains("int main()"));
 }

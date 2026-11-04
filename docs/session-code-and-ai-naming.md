@@ -1,17 +1,35 @@
 # Session code folders and AI filenames
 
-Each IDE startup creates a persistent directory under the platform Documents
-folder: `RedPandaCPP/Sessions/<local timestamp>_<unique id>`. If Documents is
-unavailable, the home directory is used. Directories are never automatically
-deleted. Restored and explicitly opened files retain their existing paths;
-project files keep their normal project workflow.
+By default each IDE startup creates a persistent directory under the platform
+Documents folder: `RedPandaCPP/Sessions/<local timestamp>_<unique id>`. If Documents
+is unavailable, the home directory is used. Directories are never automatically
+deleted. Restored and explicitly opened files retain their paths; project files
+keep their normal project workflow.
 
-New standalone C, C++, assembly and text files use this session directory.
-Their first normal Save (Ctrl+S) writes the default name without a filename
-dialog. An occupied name gets a numeric suffix, reserved exclusively before
-writing. Later saves update that same file. Save As remains available for a
-custom location. If the session folder cannot be created, the IDE reports it
-and falls back to the original Save As workflow.
+## New file saving settings
+
+Open **Tools > Options > Editor > New File Saving**. The settings are saved in the
+IDE configuration and apply to standalone files created after clicking Apply or
+OK. No restart is needed. Existing editors retain their paths and first-save
+behavior.
+
+| Setting | Choices |
+| --- | --- |
+| Save folder | Any absolute path; an empty field uses the default Documents path |
+| Subfolder rule | A separate folder for each launch (default), one folder per local calendar day, or the selected folder directly |
+| Filename rule | Numbered names such as `untitled1.cpp` (default), or local timestamp names such as `code_2026-11-04_12-30-00-123_1.cpp` |
+| First Save | Save directly using the default name (default), or open Save As in the selected folder |
+
+The settings page previews an example path. The source type determines the
+extension (C, C++, assembly or text). Daily folders are selected when each file
+is created, so new files created after midnight use the next day's folder.
+
+Direct first saves reserve a free name exclusively before writing. Occupied
+names receive a numeric suffix. Later saves update the same file. Save As remains
+available for a custom location. If a destination folder cannot be created, the
+IDE reports it and falls back to Save As. Cancelling Save As keeps the editor
+contents and does not create a file. The AI panel's explicit Save with this name
+button always saves to an unused name next to the current source file.
 
 ## AI filename panel
 

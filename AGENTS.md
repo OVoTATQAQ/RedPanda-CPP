@@ -67,6 +67,8 @@ xmake
 
 新增受特性开关控制的源文件时，必须同时登记在 `RedPandaIDE/CMakeLists.txt` 中对应的 `if(...)` 块内，**以及** `RedPandaIDE/xmake.lua` / 根目录 `xmake.lua` 中，以保持两套构建系统同步。
 
+Standalone file save preferences are configured under Editor > New File Saving, implemented in `settings/editorsettings.*`, `settingsdialog/editornewfileswidget.*` and `utils/codenaming.*`. Tests cover persisted preferences, folder/name rules and first-save cancellation.
+
 ## 测试
 
 测试使用 Qt Test（`Qt::Test`）。测试程序：`test-cppparser`、`test-editor`（均位于 `RedPandaIDE/test/`），`test-codenaming`（会话目录、文件名清理和避免覆盖），以及 qsynedit 测试套件（`libs/qsynedit/test/`）。CTest 已在根目录 `CMakeLists.txt` 中接好。
