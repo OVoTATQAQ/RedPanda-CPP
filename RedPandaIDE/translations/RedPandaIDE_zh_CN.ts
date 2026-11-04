@@ -5027,6 +5027,10 @@ p, li { white-space: pre-wrap; }
 </context>
 <context>
     <name>MainWindow</name>
+<message><source>AI filename</source><translation>AI 文件命名</translation></message>
+<message><source>Code folder</source><translation>代码目录</translation></message>
+<message><source>Cannot create a session folder in %1. New files will use Save As.</source><translation>无法在 %1 创建本次运行的代码目录。新文件将使用“另存为”。</translation></message>
+
     <message>
         <location filename="../src/mainwindow.ui" line="+14"/>
         <location filename="../src/mainwindow.cpp" line="+1472"/>
@@ -12867,5 +12871,31 @@ p, li { white-space: pre-wrap; }
         <source>Caret Color</source>
         <translation>光标颜色</translation>
     </message>
+</context>
+<context>
+<name>AiFilenameWidget</name>
+<message><source>Generate sends the current file's code to your API. Review the name, then save. Existing files are kept as copies.</source><translation>点击生成会将当前文件的代码发送至你设置的 API。检查文件名后再保存，已有文件将保留副本。</translation></message>
+<message><source>Kept only for this session</source><translation>仅在本次运行中保留</translation></message>
+<message><source>Filename without extension</source><translation>文件名（不含扩展名）</translation></message>
+<message><source>Generate filename</source><translation>生成文件名</translation></message>
+<message><source>Save with this name</source><translation>按此名称保存</translation></message>
+<message><source>API URL</source><translation>API 地址</translation></message>
+<message><source>Model</source><translation>模型</translation></message>
+<message><source>API key</source><translation>API 密钥</translation></message>
+<message><source>Name</source><translation>文件名</translation></message>
+<message><source>Select a standalone source file first.</source><translation>请先选择独立的代码文件（非项目文件）。</translation></message>
+<message><source>Use a nonempty file smaller than 128 KiB.</source><translation>请选择非空且不超过 128 KiB 的文件。</translation></message>
+<message><source>Enter an HTTPS chat completions URL, model and API key.</source><translation>请输入 HTTPS 聊天补全 API 地址、模型和密钥。</translation></message>
+<message><source>Generating…</source><translation>正在生成……</translation></message>
+<message><source>Request timed out. Try again.</source><translation>请求超时，请重试。</translation></message>
+<message><source>API request failed (HTTP %1). Check the URL, model, key and network.</source><translation>API 请求失败（HTTP %1）。请检查地址、模型、密钥和网络。</translation></message>
+<message><source>The API did not return a filename. Try again.</source><translation>API 未返回文件名，请重试。</translation></message>
+<message><source>The API returned an invalid filename.</source><translation>API 返回的文件名无效。</translation></message>
+<message><source>Review the name before saving. The source extension is preserved.</source><translation>请检查文件名后保存，原文件扩展名将保留。</translation></message>
+<message><source>The source changed or closed. Generate a new name first.</source><translation>代码已变更、切换或关闭，请重新生成文件名。</translation></message>
+<message><source>Enter a valid filename.</source><translation>请输入有效的文件名。</translation></message>
+<message><source>Cannot create file: %1</source><translation>无法创建文件：%1</translation></message>
+<message><source>Could not save the file.</source><translation>无法保存文件。</translation></message>
+<message><source>Saved: %1</source><translation>已保存：%1</translation></message>
 </context>
 </TS>

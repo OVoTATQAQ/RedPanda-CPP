@@ -109,6 +109,7 @@ target("RedPandaIDE")
         "src/settings/languagesettings.cpp",
         "src/settings/uisettings.cpp",
         -- utils
+        "src/utils/codenaming.cpp",
         "src/utils/escape.cpp",
         "src/utils/file.cpp",
         "src/utils/font.cpp",
@@ -121,6 +122,7 @@ target("RedPandaIDE")
         "src/utils/ui.cpp")
 
     add_moc_classes(
+        "src/widgets/aifilenamewidget",
         "src/caretlist",
         "src/codesnippetsmanager",
         "src/cpprefacter",
@@ -322,4 +324,13 @@ target("test-makefile-escape")
     add_files(
         "src/utils/escape.cpp",
         "test/test-makefile-escape.cpp")
+    add_includedirs(".")
+
+target("test-codenaming")
+    set_kind("binary")
+    add_rules("qt.console")
+    add_frameworks("QtTest")
+    set_default(false)
+    add_tests("default")
+    add_files("src/utils/codenaming.cpp", "test/test-codenaming.cpp")
     add_includedirs(".")

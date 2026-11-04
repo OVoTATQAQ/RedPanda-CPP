@@ -897,6 +897,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QString mSessionCodeDirectory;
     bool mFullInitialized;
     EditorManager *mEditorManager;
     QLabel *mFileInfoStatus;

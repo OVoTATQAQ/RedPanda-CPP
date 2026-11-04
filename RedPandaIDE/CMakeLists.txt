@@ -43,6 +43,7 @@ target_qt_plain_cpp(RedPandaIDE
     src/settings/languagesettings
     src/settings/uisettings
     # utils
+    src/utils/codenaming
     src/utils/escape
     src/utils/file
     src/utils/font
@@ -56,6 +57,7 @@ target_qt_plain_cpp(RedPandaIDE
     )
 
 target_moc_classes(RedPandaIDE
+    src/widgets/aifilenamewidget
     src/caretlist
     src/codesnippetsmanager
     src/cpprefacter
@@ -233,6 +235,7 @@ target_qt_plain_cpp(test-editor
     src/parser/statementmodel
 
     # utils
+    src/utils/codenaming
     src/utils/escape
     src/utils/file
     src/utils/font
@@ -263,6 +266,7 @@ target_moc_classes(test-editor
     src/codesnippetsmanager
     #test
     test/test_editor_base
+    test/test_editor_session_save
     test/test_editor_symbol_completion
 )
 target_include_directories(test-editor PRIVATE
@@ -571,3 +575,9 @@ elseif(MACOS)
     target_sources(RedPandaIDE PRIVATE
         ${app_icon})
 endif()
+
+add_executable(test-codenaming test/test-codenaming.cpp src/utils/codenaming.cpp)
+target_include_directories(test-codenaming PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test-codenaming PRIVATE Qt::Core Qt::Test)
+add_test(NAME test-codenaming COMMAND test-codenaming)
+add_dependencies(all-test-targets test-codenaming)

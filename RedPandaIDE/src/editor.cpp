@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "editor.h"
+#include "utils/codenaming.h"
 
 #include <QtCore/QFileInfo>
 #include <QFont>
@@ -271,6 +272,18 @@ void Editor::convertToEncoding(const QByteArray &encoding)
 
 bool Editor::save(bool force, bool doReparse) {
     if (this->mIsNew && !force) {
+        if (property("sessionCodeFile").toBool()) {
+            QString error;
+            QString destination = CodeNaming::reserveFile(mFilename, &error);
+            if (destination.isEmpty()) {
+                QMessageBox::critical(this, tr("Save Error"), error);
+                return false;
+            }
+            if (saveAs(destination, doReparse))
+                return true;
+            QFile::remove(destination);
+            return false;
+        }
         return saveAs("", doReparse);
     }    
     try {
@@ -362,7 +375,8 @@ bool Editor::saveAs(const QString &name, bool doCheckSyntax){
         QDir::setCurrent(extractFileDir(newName));
     }
 
-    if (mGetOpennedEditorFunc && mGetOpennedEditorFunc(newName)!=nullptr) {
+    Editor *opened = mGetOpennedEditorFunc ? mGetOpennedEditorFunc(newName) : nullptr;
+    if (opened && opened != this) {
         QMessageBox::critical(parentWidget(),tr("Error"),
                                       tr("File %1 already opened!").arg(newName));
         return false;
@@ -413,10 +427,14 @@ bool Editor::saveAs(const QString &name, bool doCheckSyntax){
         setModified(false);
         setStatusChanged(QSynedit::StatusChange::Custom0);
     }  catch (FileError& exception) {
-        if (mFileSystemWatcher)
-            mFileSystemWatcher->addPath(mFilename);
+        emit fileSaveError(this, newName, exception.reason());
+        mFilename = oldName;
+        setFileType(getFileType(oldName));
+        emit fileSaveAsed(this, newName, oldName);
+        if (mFileSystemWatcher && QFileInfo::exists(oldName))
+            mFileSystemWatcher->addPath(oldName);
+        reparse();
         QMessageBox::critical(parentWidget(),tr("Save Error"), exception.reason());
-        emit fileSaveError(this, mFilename, exception.reason());
         return false;
     }
 

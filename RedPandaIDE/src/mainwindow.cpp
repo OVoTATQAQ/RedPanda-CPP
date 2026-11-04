@@ -47,6 +47,10 @@
 #include <QActionGroup>
 
 #include "mainwindow.h"
+#include <QStandardPaths>
+#include <QDockWidget>
+#include "utils/codenaming.h"
+#include "widgets/aifilenamewidget.h"
 #include "ui_mainwindow.h"
 #include "editormanager.h"
 #include "editor.h"
@@ -139,6 +143,14 @@ MainWindow::MainWindow(QWidget *parent)
       mCompileIssuesState{CompileIssuesState::None}
 {
     ui->setupUi(this);
+    QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    if (documents.isEmpty()) documents = QDir::homePath();
+    QString sessionError;
+    mSessionCodeDirectory = CodeNaming::createSessionDirectory(
+                QDir(documents).filePath("RedPandaCPP/Sessions"), &sessionError);
+    if (mSessionCodeDirectory.isEmpty())
+        QMessageBox::warning(this, tr("Code folder"),
+                             tr("Cannot create a session folder in %1. New files will use Save As.").arg(sessionError));
 
     /** Msys2 MinGW 64 Qt 6.8.0 fix: Crash when debug **/
 // #if defined(QT_DEBUG) && QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR == 8
@@ -528,6 +540,13 @@ MainWindow::MainWindow(QWidget *parent)
     //applySettings();
     applyUISettings();
     initDocks();
+    auto namingDock = new QDockWidget(tr("AI filename"), this);
+    namingDock->setObjectName("AIFileNameDock");
+    namingDock->setWidget(new AiFilenameWidget(
+        [this]() { return mEditorManager->getEditor(); }, pSettings->filename(), namingDock));
+    addDockWidget(Qt::RightDockWidgetArea, namingDock);
+    ui->menuView->addAction(namingDock->toggleViewAction());
+    namingDock->hide();
     updateProjectView();
     updateEditorActions();
     updateCaretActions();
@@ -3736,11 +3755,14 @@ void MainWindow::newEditor(const QString& suffix)
             } else
                 filename+= "." + suffix;
 
-        } while(mEditorManager->hasFilename(filename));
+            if (!mSessionCodeDirectory.isEmpty())
+                filename = QDir(mSessionCodeDirectory).filePath(filename);
+        } while(mEditorManager->hasFilename(filename) || QFileInfo::exists(filename));
         Editor * editor=mEditorManager->newEditor(filename,
                                                pSettings->editor().defaultEncoding(),
                                                FileType::None, QString(),
                                                false,true);
+        editor->setProperty("sessionCodeFile", !mSessionCodeDirectory.isEmpty());
         mEditorManager->activeEditor(editor,true);
         //updateForEncodingInfo();
     }  catch (FileError e) {
