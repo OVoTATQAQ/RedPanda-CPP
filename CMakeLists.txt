@@ -45,6 +45,10 @@ set(APP_NAME RedPandaCPP CACHE STRING "Subdirectory name to $prefix/share and $p
 set(FILESYSTEM_LAYOUT ${FILESYSTEM_LAYOUT_DEFAULT} CACHE STRING "Use 'hierarchy', 'flat', or 'bundle' filesystem layout.")
 set(LIBEXECDIR libexec CACHE STRING "Directory for auxiliary executables, RELATIVE TO prefix.")
 set(MAKE_INTERFACE ${MAKE_INTERFACE_DEFAULT} CACHE STRING "Use make interface of 'unix' (system `make`, SHELL=sh) or 'mingw32' (toolchain `mingw32-make.exe`, SHELL=cmd).")
+if(NOT DEFINED CMAKE_INSTALL_LIBEXECDIR)
+    set(CMAKE_INSTALL_LIBEXECDIR "${LIBEXECDIR}")
+endif()
+include(GNUInstallDirs)
 set(OVERRIDE_MALLOC "" CACHE STRING "Override malloc implementation, e.g. mimalloc")
 set(PORTABLE_CONFIG ${PORTABLE_CONFIG_DEFAULT} CACHE STRING
     # avoid "yes" "no", they may be treated as boolean values

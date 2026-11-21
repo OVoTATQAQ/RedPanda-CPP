@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "editorsettings.h"
-#include <QDir>
 #include "../utils/font.h"
 
 EditorSettings::EditorSettings(SettingsPersistor *persistor):
@@ -906,10 +905,6 @@ void EditorSettings::setAutoHideScrollbar(bool autoHideScrollbar)
 
 void EditorSettings::doSave()
 {
-    saveValue("new_file_save_root", mNewFileSaveRoot);
-    saveValue("new_file_folder_rule", static_cast<int>(mNewFileFolderRule));
-    saveValue("new_file_name_rule", static_cast<int>(mNewFileNameRule));
-    saveValue("new_file_auto_save", mNewFileAutoSave);
 
     // indents
     saveValue("auto_indent", mAutoIndent);
@@ -1043,17 +1038,6 @@ void EditorSettings::doSave()
 
 void EditorSettings::doLoad()
 {
-    mNewFileSaveRoot = QDir::fromNativeSeparators(stringValue("new_file_save_root", CodeNaming::defaultSaveRoot()).trimmed());
-    if (mNewFileSaveRoot.isEmpty() || !QDir::isAbsolutePath(mNewFileSaveRoot))
-        mNewFileSaveRoot = CodeNaming::defaultSaveRoot();
-    mNewFileSaveRoot = QDir::cleanPath(mNewFileSaveRoot);
-    int folderRule = intValue("new_file_folder_rule", 0);
-    mNewFileFolderRule = folderRule >= 0 && folderRule <= 2
-            ? static_cast<CodeNaming::FolderRule>(folderRule) : CodeNaming::FolderRule::PerSession;
-    int nameRule = intValue("new_file_name_rule", 0);
-    mNewFileNameRule = nameRule >= 0 && nameRule <= 1
-            ? static_cast<CodeNaming::FilenameRule>(nameRule) : CodeNaming::FilenameRule::Numbered;
-    mNewFileAutoSave = boolValue("new_file_auto_save", true);
 
     // indents
     mAutoIndent = boolValue("auto_indent", true);

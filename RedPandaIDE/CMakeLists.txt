@@ -3,6 +3,38 @@
 
 add_executable(RedPandaIDE WIN32)
 
+# The native file workflow is loaded only when enabled in the IDE.
+if(QT_FEATURE_static)
+    add_library(sessionai STATIC)
+    target_compile_definitions(sessionai PRIVATE QT_STATICPLUGIN)
+else()
+    add_library(sessionai MODULE)
+    if(FILESYSTEM_LAYOUT STREQUAL "bundle")
+        set(plugin_build_dir "$<TARGET_FILE_DIR:RedPandaIDE>/../PlugIns/fileplugins")
+        set(plugin_install_dir "RedPandaIDE.app/Contents/PlugIns/fileplugins")
+    else()
+        set(plugin_build_dir "$<TARGET_FILE_DIR:RedPandaIDE>/fileplugins")
+        if(FILESYSTEM_LAYOUT STREQUAL "flat")
+            set(plugin_install_dir "fileplugins")
+        else()
+            set(plugin_install_dir "${CMAKE_INSTALL_LIBEXECDIR}/${APP_NAME}/fileplugins")
+        endif()
+    endif()
+    set_target_properties(sessionai PROPERTIES PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${plugin_build_dir}"
+        RUNTIME_OUTPUT_DIRECTORY "${plugin_build_dir}")
+    install(TARGETS sessionai DESTINATION "${plugin_install_dir}")
+endif()
+
+target_qt_plain_cpp(sessionai plugins/sessionai/codenaming)
+target_moc_classes(sessionai
+    plugins/sessionai/aifilenamewidget
+    plugins/sessionai/editornewfileswidget
+    plugins/sessionai/sessionaiplugin)
+target_include_directories(sessionai PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(sessionai PRIVATE Qt::Widgets Qt::Network)
+target_embed_translations(sessionai TS_FILES plugins/sessionai/sessionai_zh_CN.ts)
+
 target_qt_plain_cpp(RedPandaIDE
     src/autolinkmanager
     src/colorscheme
@@ -43,7 +75,6 @@ target_qt_plain_cpp(RedPandaIDE
     src/settings/languagesettings
     src/settings/uisettings
     # utils
-    src/utils/codenaming
     src/utils/escape
     src/utils/file
     src/utils/font
@@ -57,8 +88,7 @@ target_qt_plain_cpp(RedPandaIDE
     )
 
 target_moc_classes(RedPandaIDE
-    src/settingsdialog/editornewfileswidget
-    src/widgets/aifilenamewidget
+    src/addon/fileworkflowloader
     src/caretlist
     src/codesnippetsmanager
     src/cpprefacter
@@ -236,7 +266,6 @@ target_qt_plain_cpp(test-editor
     src/parser/statementmodel
 
     # utils
-    src/utils/codenaming
     src/utils/escape
     src/utils/file
     src/utils/font
@@ -254,7 +283,7 @@ target_qt_plain_cpp(test-editor
     )
 
 target_moc_classes(test-editor
-    src/widgets/aifilenamewidget
+    src/addon/fileworkflowloader
     src/editor
 
     src/widgets/bookmarkmodel
@@ -272,6 +301,15 @@ target_moc_classes(test-editor
     test/test_editor_session_save
     test/test_editor_symbol_completion
 )
+foreach(consumer RedPandaIDE test-editor)
+    if(QT_FEATURE_static)
+        target_link_libraries(${consumer} PRIVATE sessionai)
+        target_compile_definitions(${consumer} PRIVATE REDPANDA_STATIC_FILE_PLUGIN)
+    else()
+        add_dependencies(${consumer} sessionai)
+    endif()
+endforeach()
+target_compile_definitions(test-editor PRIVATE SESSION_AI_PLUGIN_FILE="$<TARGET_FILE:sessionai>")
 target_include_directories(test-editor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -580,7 +618,7 @@ elseif(MACOS)
         ${app_icon})
 endif()
 
-add_executable(test-codenaming test/test-codenaming.cpp src/utils/codenaming.cpp)
+add_executable(test-codenaming test/test-codenaming.cpp plugins/sessionai/codenaming.cpp)
 target_include_directories(test-codenaming PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test-codenaming PRIVATE Qt::Core Qt::Test)
 add_test(NAME test-codenaming COMMAND test-codenaming)

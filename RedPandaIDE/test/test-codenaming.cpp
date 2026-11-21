@@ -16,9 +16,10 @@
  */
 #include <QtTest>
 #include <QTemporaryDir>
+#include <QSettings>
 #include <QFile>
 #include <QDir>
-#include "src/utils/codenaming.h"
+#include "plugins/sessionai/codenaming.h"
 
 class TestCodeNaming : public QObject {
     Q_OBJECT
@@ -70,6 +71,19 @@ private slots:
         QString error;
         QVERIFY(CodeNaming::createSaveDirectory("relative/path", CodeNaming::FolderRule::Fixed, &error).isEmpty());
         QVERIFY(!error.isEmpty());
+    }
+    void invalidLegacyPreferences() {
+        QTemporaryDir root;
+        const QString config = root.filePath("settings.ini");
+        QSettings settings(config, QSettings::IniFormat);
+        settings.setValue("Editor/new_file_save_root", "relative/path");
+        settings.setValue("Editor/new_file_folder_rule", 99);
+        settings.setValue("Editor/new_file_name_rule", -1);
+        const auto prefs = CodeNaming::Preferences::load(config);
+        QCOMPARE(prefs.root, CodeNaming::defaultSaveRoot());
+        QCOMPARE(prefs.folderRule, CodeNaming::FolderRule::PerSession);
+        QCOMPARE(prefs.filenameRule, CodeNaming::FilenameRule::Numbered);
+        QVERIFY(prefs.directSave);
     }
     void configurableDefaultNames() {
         QCOMPARE(CodeNaming::defaultFileStem(CodeNaming::FilenameRule::Numbered, 17), QString("untitled17"));

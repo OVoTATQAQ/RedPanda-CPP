@@ -15,7 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "test_ai_filename_widget.h"
-#include "src/widgets/aifilenamewidget.h"
+#include "fileworkflowfixture.h"
+#include <QPushButton>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QtTest>
 #include <QComboBox>
 #include <QLineEdit>
@@ -25,11 +28,13 @@
 void TestAiFilenameWidget::switchProviders()
 {
     QTemporaryDir root;
-    AiFilenameWidget panel([]() -> Editor * { return nullptr; }, root.filePath("settings.ini"));
-    auto provider = panel.findChild<QComboBox *>("aiProvider");
-    auto model = panel.findChild<QComboBox *>("aiModel");
-    auto endpoint = panel.findChild<QLineEdit *>("aiEndpoint");
-    auto key = panel.findChild<QLineEdit *>("aiApiKey");
+    FileWorkflowFixture host(root);
+    host.enable();
+    QVERIFY(host.loader.active());
+    auto provider = host.window.findChild<QComboBox *>("aiProvider");
+    auto model = host.window.findChild<QComboBox *>("aiModel");
+    auto endpoint = host.window.findChild<QLineEdit *>("aiEndpoint");
+    auto key = host.window.findChild<QLineEdit *>("aiApiKey");
     QVERIFY(provider && model && endpoint && key);
     QCOMPARE(provider->currentData().toString(), QString("openai"));
     key->setText("test-key-not-a-credential");
@@ -59,10 +64,12 @@ void TestAiFilenameWidget::restoreLegacyDeepSeekSettings()
         settings.setValue("AIFileName/endpoint", "https://api.deepseek.com/v1/chat/completions");
         settings.setValue("AIFileName/model", "deepseek-reasoner");
     }
-    AiFilenameWidget panel([]() -> Editor * { return nullptr; }, file);
-    QCOMPARE(panel.findChild<QComboBox *>("aiProvider")->currentData().toString(), QString("deepseek"));
-    QCOMPARE(panel.findChild<QComboBox *>("aiModel")->currentText(), QString("deepseek-reasoner"));
-    QCOMPARE(panel.findChild<QLineEdit *>("aiEndpoint")->text(),
+    FileWorkflowFixture host(root);
+    host.enable();
+    QVERIFY(host.loader.active());
+    QCOMPARE(host.window.findChild<QComboBox *>("aiProvider")->currentData().toString(), QString("deepseek"));
+    QCOMPARE(host.window.findChild<QComboBox *>("aiModel")->currentText(), QString("deepseek-reasoner"));
+    QCOMPARE(host.window.findChild<QLineEdit *>("aiEndpoint")->text(),
              QString("https://api.deepseek.com/v1/chat/completions"));
 }
 
@@ -76,8 +83,37 @@ void TestAiFilenameWidget::restoreSavedProviderProfile()
         settings.setValue("AIFileName/providers/deepseek/endpoint", "https://api.deepseek.com/chat/completions");
         settings.setValue("AIFileName/providers/deepseek/model", "deepseek-chat");
     }
-    AiFilenameWidget panel([]() -> Editor * { return nullptr; }, file);
-    QCOMPARE(panel.findChild<QComboBox *>("aiProvider")->currentData().toString(), QString("deepseek"));
-    QCOMPARE(panel.findChild<QComboBox *>("aiModel")->currentText(), QString("deepseek-chat"));
-    QVERIFY(panel.findChild<QLineEdit *>("aiApiKey")->text().isEmpty());
+    FileWorkflowFixture host(root);
+    host.enable();
+    QVERIFY(host.loader.active());
+    QCOMPARE(host.window.findChild<QComboBox *>("aiProvider")->currentData().toString(), QString("deepseek"));
+    QCOMPARE(host.window.findChild<QComboBox *>("aiModel")->currentText(), QString("deepseek-chat"));
+    QVERIFY(host.window.findChild<QLineEdit *>("aiApiKey")->text().isEmpty());
+}
+
+void TestAiFilenameWidget::disableWithPendingRequest()
+{
+    QTemporaryDir root;
+    init_editor();
+    Editor &editor = *mEditor;
+    editor.setFilename("untitled1.cpp");
+    editor.loadContent(QString("int x;"));
+    QTcpServer server;
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    FileWorkflowFixture host(root, &editor);
+    host.enable();
+    QVERIFY(host.loader.active());
+    host.window.findChild<QLineEdit *>("aiEndpoint")->setText(
+            QString("https://127.0.0.1:%1/chat/completions").arg(server.serverPort()));
+    host.window.findChild<QLineEdit *>("aiApiKey")->setText("local-test");
+    auto generate = host.window.findChild<QPushButton *>("aiGenerate");
+    generate->click();
+    QVERIFY(!generate->isEnabled());
+    QTRY_VERIFY(server.hasPendingConnections());
+    auto socket = server.nextPendingConnection();
+    host.disable();
+    QTRY_COMPARE(socket->state(), QAbstractSocket::UnconnectedState);
+    host.enable();
+    QVERIFY(host.window.findChild<QLineEdit *>("aiApiKey")->text().isEmpty());
+    QVERIFY(host.window.findChild<QPushButton *>("aiGenerate")->isEnabled());
 }

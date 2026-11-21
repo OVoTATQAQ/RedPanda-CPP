@@ -67,7 +67,11 @@ xmake
 
 新增受特性开关控制的源文件时，必须同时登记在 `RedPandaIDE/CMakeLists.txt` 中对应的 `if(...)` 块内，**以及** `RedPandaIDE/xmake.lua` / 根目录 `xmake.lua` 中，以保持两套构建系统同步。
 
-Standalone file save preferences are configured under Editor > New File Saving, implemented in `settings/editorsettings.*`, `settingsdialog/editornewfileswidget.*` and `utils/codenaming.*`. Tests cover persisted preferences, folder/name rules and first-save cancellation.
+The optional native file workflow plugin lives in `RedPandaIDE/plugins/sessionai/`.
+The host interface and loader live in `RedPandaIDE/src/addon/fileworkflow*`.
+The runtime switch is under Tools > Plugins. CMake packages a module for shared
+Qt and links the plugin statically for static Qt. Use `--static-file-plugin=y`
+with Xmake and static Qt. The editor tests exercise the plugin through its loader.
 
 ## 测试
 

@@ -15,8 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "editornewfileswidget.h"
-#include "../settings.h"
-#include "../utils/codenaming.h"
+#include <QMessageBox>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDate>
@@ -28,10 +27,12 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <utility>
 
-EditorNewFilesWidget::EditorNewFilesWidget(const QString &name, const QString &group,
-                                         IconsManager *iconsManager, QWidget *parent) :
-    SettingsWidget(name, group, iconsManager, parent)
+EditorNewFilesWidget::EditorNewFilesWidget(CodeNaming::Preferences &preferences, const QString &settingsFile,
+                                         std::function<QString()> defaultSuffix, QWidget *parent) :
+    QWidget(parent), mPreferences(preferences), mSettingsFile(settingsFile),
+    mDefaultSuffix(std::move(defaultSuffix))
 {
     auto layout = new QVBoxLayout(this);
     auto form = new QFormLayout;
@@ -68,7 +69,11 @@ EditorNewFilesWidget::EditorNewFilesWidget(const QString &name, const QString &g
     mPreview->setWordWrap(true);
     mPreview->setTextInteractionFlags(Qt::TextSelectableByMouse);
     layout->addWidget(mPreview);
+    auto applyButton = new QPushButton(tr("Apply"), this);
+    applyButton->setObjectName("applyNewFilePreferences");
+    layout->addWidget(applyButton, 0, Qt::AlignLeft);
     layout->addStretch();
+    connect(applyButton, &QPushButton::clicked, this, &EditorNewFilesWidget::apply);
     connect(browse, &QPushButton::clicked, this, [this]() {
         QString folder = QFileDialog::getExistingDirectory(this, tr("Select the code save folder"), mRoot->text());
         if (!folder.isEmpty()) mRoot->setText(QDir::toNativeSeparators(folder));
@@ -78,30 +83,30 @@ EditorNewFilesWidget::EditorNewFilesWidget(const QString &name, const QString &g
             this, [this]() { updatePreview(); });
     connect(mFilenameRule, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this]() { updatePreview(); });
-}
 
-void EditorNewFilesWidget::doLoad()
-{
-    const auto &settings = pSettings->editor();
-    mRoot->setText(QDir::toNativeSeparators(settings.newFileSaveRoot()));
-    mFolderRule->setCurrentIndex(mFolderRule->findData(int(settings.newFileFolderRule())));
-    mFilenameRule->setCurrentIndex(mFilenameRule->findData(int(settings.newFileNameRule())));
-    mDirectSave->setChecked(settings.newFileAutoSave());
+    mRoot->setText(QDir::toNativeSeparators(mPreferences.root));
+    mFolderRule->setCurrentIndex(mFolderRule->findData(int(mPreferences.folderRule)));
+    mFilenameRule->setCurrentIndex(mFilenameRule->findData(int(mPreferences.filenameRule)));
+    mDirectSave->setChecked(mPreferences.directSave);
     updatePreview();
 }
 
-void EditorNewFilesWidget::doSave()
+void EditorNewFilesWidget::apply()
 {
     QString root = QDir::fromNativeSeparators(mRoot->text().trimmed());
-    if (root.isEmpty()) root = CodeNaming::defaultSaveRoot();
-    if (!QDir::isAbsolutePath(root))
-        throw FileError(tr("Please choose an absolute save folder path."));
-    auto &settings = pSettings->editor();
-    settings.setNewFileSaveRoot(QDir::cleanPath(root));
-    settings.setNewFileFolderRule(static_cast<CodeNaming::FolderRule>(mFolderRule->currentData().toInt()));
-    settings.setNewFileNameRule(static_cast<CodeNaming::FilenameRule>(mFilenameRule->currentData().toInt()));
-    settings.setNewFileAutoSave(mDirectSave->isChecked());
-    settings.save();
+    if (root.isEmpty())
+        root = CodeNaming::defaultSaveRoot();
+    if (!QDir::isAbsolutePath(root)) {
+        QMessageBox::warning(this, tr("Save folder"), tr("Please choose an absolute save folder path."));
+        mRoot->setFocus();
+        return;
+    }
+    mPreferences.root = QDir::cleanPath(root);
+    mPreferences.folderRule = static_cast<CodeNaming::FolderRule>(mFolderRule->currentData().toInt());
+    mPreferences.filenameRule = static_cast<CodeNaming::FilenameRule>(mFilenameRule->currentData().toInt());
+    mPreferences.directSave = mDirectSave->isChecked();
+    mPreferences.save(mSettingsFile);
+    mRoot->setText(QDir::toNativeSeparators(mPreferences.root));
 }
 
 void EditorNewFilesWidget::updatePreview()
@@ -120,6 +125,6 @@ void EditorNewFilesWidget::updatePreview()
     }
     QString name = mFilenameRule->currentData().toInt() == int(CodeNaming::FilenameRule::Timestamp)
             ? "code_yyyy-MM-dd_HH-mm-ss-zzz_1" : "untitled1";
-    name += pSettings->editor().defaultFileCpp() ? ".cpp" : ".c";
+    name += "." + mDefaultSuffix();
     mPreview->setText(tr("Example path: %1").arg(QDir::toNativeSeparators(QDir(root).filePath(name))));
 }

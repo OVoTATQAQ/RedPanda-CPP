@@ -45,7 +45,8 @@ public:
     Editor* newEditor(const QString& filename, const QByteArray& encoding,
                       FileType fileType, const QString& contextFile,
                      bool inProject, bool newFile,
-                     QTabWidget* page=nullptr);
+                     QTabWidget* page=nullptr, int standaloneFileNumber=0);
+    void setFileWorkflow(FileWorkflow *workflow);
 
     Editor* getEditor(int index=-1, QTabWidget* tabsWidget=nullptr) const;
 
@@ -155,6 +156,7 @@ private slots:
     void onEditorEncodingChanged(Editor *e);
     void onEditorFileTypeChanged(Editor *e);
 private:
+    FileWorkflow *mFileWorkflow = nullptr;
     LayoutShowType mLayout;
     QTabWidget *mLeftPageWidget;
     QTabWidget *mRightPageWidget;

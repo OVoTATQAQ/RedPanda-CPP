@@ -42,6 +42,7 @@ class BreakpointModel;
 class BookmarkModel;
 class Settings;
 class CodeSnippetsManager;
+class FileWorkflow;
 class EditorSettings;
 class CodeCompletionSettings;
 class ColorManager;
@@ -174,6 +175,8 @@ public:
     void rename(const QString& newName);
     void setFilename(const QString& newName);
     QString caption();
+    QString suggestedSaveName() const;
+    void setFileWorkflow(FileWorkflow *workflow) { mFileWorkflow = workflow; }
 
     void applySettings();
     void applyColorScheme(const QString& schemeName);
@@ -454,6 +457,7 @@ private:
     QByteArray mFileEncoding; // the real encoding of the file (auto detected)
     QString mFilename;
     //QTabWidget* mParentPageControl;
+    FileWorkflow *mFileWorkflow = nullptr;
     bool mIsNew;
     bool mInProject;
 

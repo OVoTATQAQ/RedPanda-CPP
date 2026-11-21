@@ -20,21 +20,11 @@
 #include "../utils.h"
 #include "qsynedit/types.h"
 
-#include "../utils/codenaming.h"
-
 #define SETTING_EDITOR "Editor"
 
 class EditorSettings: public BaseSettings {
 public:
     explicit EditorSettings(SettingsPersistor * persistor);
-    const QString &newFileSaveRoot() const { return mNewFileSaveRoot; }
-    void setNewFileSaveRoot(const QString &root) { mNewFileSaveRoot = root; }
-    CodeNaming::FolderRule newFileFolderRule() const { return mNewFileFolderRule; }
-    void setNewFileFolderRule(CodeNaming::FolderRule rule) { mNewFileFolderRule = rule; }
-    CodeNaming::FilenameRule newFileNameRule() const { return mNewFileNameRule; }
-    void setNewFileNameRule(CodeNaming::FilenameRule rule) { mNewFileNameRule = rule; }
-    bool newFileAutoSave() const { return mNewFileAutoSave; }
-    void setNewFileAutoSave(bool enabled) { mNewFileAutoSave = enabled; }
     QByteArray defaultEncoding() const;
     void setDefaultEncoding(const QByteArray& value);
     bool autoIndent() const;
@@ -321,10 +311,6 @@ public:
     void setCopyHTMLForegroundColor(const QColor &newCopyHTMLForegroundColor);
 
 private:
-    QString mNewFileSaveRoot;
-    CodeNaming::FolderRule mNewFileFolderRule = CodeNaming::FolderRule::PerSession;
-    CodeNaming::FilenameRule mNewFileNameRule = CodeNaming::FilenameRule::Numbered;
-    bool mNewFileAutoSave = true;
     //General
     // indents
     bool mAutoIndent;

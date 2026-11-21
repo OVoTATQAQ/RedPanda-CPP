@@ -20,6 +20,16 @@
 namespace CodeNaming {
 enum class FolderRule { PerSession = 0, PerDay = 1, Fixed = 2 };
 enum class FilenameRule { Numbered = 0, Timestamp = 1 };
+struct Preferences {
+    QString root;
+    FolderRule folderRule = FolderRule::PerSession;
+    FilenameRule filenameRule = FilenameRule::Numbered;
+    bool directSave = true;
+
+    static Preferences load(const QString &settingsFile);
+    void save(const QString &settingsFile) const;
+};
+
 QString defaultSaveRoot();
 QString createSaveDirectory(const QString &root, FolderRule rule, QString *error = nullptr);
 QString defaultFileStem(FilenameRule rule, int number);

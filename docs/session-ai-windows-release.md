@@ -1,8 +1,8 @@
 # Windows x64 session AI build
 
 This is a custom prerelease, not an official upstream Red Panda C++ release.
-It includes configurable new file save folders and naming rules,
-OpenAI/DeepSeek/custom API presets and the AI filename panel.
+It ships the optional Session folders and AI filenames plugin in
+`fileplugins/sessionai.dll`.
 
 ## Run
 
@@ -14,12 +14,12 @@ The archive does not include GCC/MinGW, GDB or AStyle. Configure an installed
 C/C++ toolchain in the IDE settings to compile and debug programs. Configure
 AStyle separately if code formatting is needed.
 
-New standalone code files use a separate Documents/RedPandaCPP/Sessions folder
-for each startup by default. Change the root folder, subfolder rule, filename
-rule and first-save prompt under Tools > Options > Editor > New File Saving. Open View > AI filename to configure your own
-OpenAI-compatible HTTPS chat completions API, model and key. Only clicking
-Generate sends source code. API keys are kept in memory for the current run.
-See `session-code-and-ai-naming.md` for details.
+Enable **Tools > Plugins > Session folders and AI filenames**. Use the two tabs
+in the plugin panel to configure new-file saving and request a filename from
+OpenAI, DeepSeek or a custom compatible service. Turn the same switch off to
+restore the original new-file and save workflows immediately. Only clicking
+Generate sends source code. API keys are kept in memory while the plugin is
+enabled. See `session-code-and-ai-naming.md` for details.
 
 ## Interface language
 

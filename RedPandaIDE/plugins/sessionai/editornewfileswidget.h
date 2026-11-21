@@ -16,21 +16,24 @@
  */
 #ifndef EDITORNEWFILESWIDGET_H
 #define EDITORNEWFILESWIDGET_H
-#include "settingswidget.h"
+#include "codenaming.h"
+#include <QWidget>
+#include <functional>
 class QLineEdit;
 class QComboBox;
 class QCheckBox;
 class QLabel;
-class EditorNewFilesWidget : public SettingsWidget {
+class EditorNewFilesWidget : public QWidget {
     Q_OBJECT
 public:
-    EditorNewFilesWidget(const QString &name, const QString &group,
-                         IconsManager *iconsManager, QWidget *parent = nullptr);
-protected:
-    void doLoad() override;
-    void doSave() override;
+    EditorNewFilesWidget(CodeNaming::Preferences &preferences, const QString &settingsFile,
+                         std::function<QString()> defaultSuffix, QWidget *parent = nullptr);
 private:
+    void apply();
     void updatePreview();
+    CodeNaming::Preferences &mPreferences;
+    QString mSettingsFile;
+    std::function<QString()> mDefaultSuffix;
     QLineEdit *mRoot;
     QComboBox *mFolderRule, *mFilenameRule;
     QCheckBox *mDirectSave;

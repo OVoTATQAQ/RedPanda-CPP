@@ -60,6 +60,7 @@ enum class RunType {
 
 
 class EditorManager;
+class FileWorkflowLoader;
 class QLabel;
 class QComboBox;
 class CompilerManager;
@@ -896,11 +897,10 @@ private slots:
     void on_actionReparse_Code_triggered();
 
 private:
+    QString defaultNewFileSuffix() const;
     Ui::MainWindow *ui;
-    QString newFileSaveDirectory();
-    QString mSessionCodeDirectory;
-    QString mSessionCodeRoot;
-    QString mNewFileSaveError;
+    FileWorkflowLoader *mFileWorkflowLoader;
+    QMenu *mPluginsMenu;
     bool mFullInitialized;
     EditorManager *mEditorManager;
     QLabel *mFileInfoStatus;

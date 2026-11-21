@@ -261,6 +261,7 @@ xmake 选项：
   - 适用于：层级文件系统布局 (hierarchy)。
   - Arch Linux 和 MSYS2 使用 `lib`。
 - `lua-addon`：启用 Lua 附加组件。
+- 使用静态 Qt 构建时，指定 `--static-file-plugin=y` 将文件插件链接到 IDE 中。
 - `portable-config`：`oui`、`non` 或 `registry`。
   - 适用于：Windows。
   - `oui`：是，将配置文件写入小熊猫C++ 的目录。

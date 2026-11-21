@@ -92,6 +92,11 @@ option("glibc-hwcaps")
     set_default(false)
     add_defines('ENABLE_GLIBC_HWCAPS')
 
+option("static-file-plugin")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Link the file workflow plugin into static Qt builds")
+
 option("lua-addon")
     set_default(true)
     set_showmenu(true)

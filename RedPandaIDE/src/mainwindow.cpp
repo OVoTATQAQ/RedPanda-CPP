@@ -47,10 +47,7 @@
 #include <QActionGroup>
 
 #include "mainwindow.h"
-#include <QStandardPaths>
-#include <QDockWidget>
-#include "utils/codenaming.h"
-#include "widgets/aifilenamewidget.h"
+#include "addon/fileworkflowloader.h"
 #include "ui_mainwindow.h"
 #include "editormanager.h"
 #include "editor.h"
@@ -143,7 +140,6 @@ MainWindow::MainWindow(QWidget *parent)
       mCompileIssuesState{CompileIssuesState::None}
 {
     ui->setupUi(this);
-    newFileSaveDirectory();
 
     /** Msys2 MinGW 64 Qt 6.8.0 fix: Crash when debug **/
 // #if defined(QT_DEBUG) && QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR == 8
@@ -533,13 +529,31 @@ MainWindow::MainWindow(QWidget *parent)
     //applySettings();
     applyUISettings();
     initDocks();
-    auto namingDock = new QDockWidget(tr("AI filename"), this);
-    namingDock->setObjectName("AIFileNameDock");
-    namingDock->setWidget(new AiFilenameWidget(
-        [this]() { return mEditorManager->getEditor(); }, pSettings->filename(), namingDock));
-    addDockWidget(Qt::RightDockWidgetArea, namingDock);
-    ui->menuView->addAction(namingDock->toggleViewAction());
-    namingDock->hide();
+    FileWorkflowContext fileContext{
+        this, ui->menuView, pSettings->filename(),
+        [this]() -> StandaloneFile {
+            Editor *editor = mEditorManager->getEditor();
+            if (!editor || editor->inProject())
+                return {};
+            return {editor, editor->suggestedSaveName(), editor->document()->text()};
+        },
+        [this](QObject *source, const QString &path) {
+            Editor *editor = mEditorManager->getEditor();
+            return editor && editor == source && !editor->inProject() && editor->saveAs(path);
+        },
+        [this]() { return defaultNewFileSuffix(); }
+    };
+    mFileWorkflowLoader = new FileWorkflowLoader(std::move(fileContext), this);
+    connect(mFileWorkflowLoader, &FileWorkflowLoader::activeChanged, this, [this](FileWorkflow *workflow) {
+        mEditorManager->setFileWorkflow(workflow);
+        updateAppTitle();
+    });
+    connect(mFileWorkflowLoader, &FileWorkflowLoader::loadFailed, this, [this](const QString &reason) {
+        statusBar()->showMessage(reason, 10000);
+    });
+    mPluginsMenu = new QMenu(tr("Plugins"), this);
+    mPluginsMenu->addAction(mFileWorkflowLoader->toggleAction());
+    mFileWorkflowLoader->restore();
     updateProjectView();
     updateEditorActions();
     updateCaretActions();
@@ -556,6 +570,7 @@ MainWindow::~MainWindow()
     if (mProject)
         mProject=nullptr;
     delete mProjectProxyModel;
+    delete mFileWorkflowLoader;
     delete mEditorManager;
     delete ui;
 }
@@ -1487,11 +1502,9 @@ void MainWindow::updateAppTitle(const Editor *e)
 #endif
     QCoreApplication *app = QApplication::instance();
     if (e && !e->inProject()) {
-        QString str;
+        QString str = e->suggestedSaveName();
         if (e->modified())
-          str = e->filename() + " [*]";
-        else
-          str = e->filename();
+            str += " [*]";
         if (mDebugger->executing()) {
             setWindowTitle(QString("%1 - [%2] - %3 %4")
                            .arg(str,tr("Debugging"),appName,REDPANDA_CPP_VERSION));
@@ -3711,6 +3724,7 @@ void MainWindow::updateTools()
         delete oldToolActions[i];
     }
     ui->menuTools->addAction(ui->actionOptions);
+    ui->menuTools->addMenu(mPluginsMenu);
     if (!mToolsManager->tools().isEmpty()) {
         ui->menuTools->addSeparator();
         QList<QAction*> actions;
@@ -3729,65 +3743,28 @@ void MainWindow::updateTools()
     }
 }
 
-QString MainWindow::newFileSaveDirectory()
+QString MainWindow::defaultNewFileSuffix() const
 {
-    const QString root = pSettings->editor().newFileSaveRoot();
-    const auto rule = pSettings->editor().newFileFolderRule();
-    QString error;
-    QString directory;
-    if (rule == CodeNaming::FolderRule::PerSession && mSessionCodeRoot == root
-            && !mSessionCodeDirectory.isEmpty()) {
-        if (QDir().mkpath(mSessionCodeDirectory))
-            directory = mSessionCodeDirectory;
-        else
-            error = mSessionCodeDirectory;
-    } else {
-        directory = CodeNaming::createSaveDirectory(root, rule, &error);
-        if (rule == CodeNaming::FolderRule::PerSession && !directory.isEmpty()) {
-            mSessionCodeRoot = root;
-            mSessionCodeDirectory = directory;
-        }
-    }
-    if (directory.isEmpty()) {
-        if (mNewFileSaveError != error) {
-            QMessageBox::warning(this, tr("Code folder"),
-                                 tr("Cannot create the code folder in %1. New files will use Save As.").arg(error));
-            mNewFileSaveError = error;
-        }
-    } else {
-        mNewFileSaveError.clear();
-    }
-    return directory;
+    if (!pSettings->editor().defaultFileCpp())
+        return "c";
+    PCompilerSet compilerSet = pSettings->compilerSets().defaultSet();
+    return compilerSet && !compilerSet->canCompileCPP() ? "c" : "cpp";
 }
 
 void MainWindow::newEditor(const QString& suffix)
 {
     try {
-        const QString saveDirectory = newFileSaveDirectory();
+        const QString extension = suffix.isEmpty() ? defaultNewFileSuffix() : suffix;
         QString filename;
+        int number;
         do {
-            filename = CodeNaming::defaultFileStem(pSettings->editor().newFileNameRule(), getNewFileNumber());
-            if (suffix.isEmpty()) {
-                if (pSettings->editor().defaultFileCpp()) {
-                    PCompilerSet compilerSet = pSettings->compilerSets().defaultSet();
-                    if (compilerSet && !compilerSet->canCompileCPP()) {
-                        filename+=".c";
-                    } else {
-                        filename+=".cpp";
-                    }
-                } else
-                    filename+=".c";
-            } else
-                filename+= "." + suffix;
-
-            if (!saveDirectory.isEmpty())
-                filename = QDir(saveDirectory).filePath(filename);
-        } while(mEditorManager->hasFilename(filename) || QFileInfo::exists(filename));
+            number = getNewFileNumber();
+            filename = QString("untitled%1.%2").arg(number).arg(extension);
+        } while(mEditorManager->hasFilename(filename));
         Editor * editor=mEditorManager->newEditor(filename,
                                                pSettings->editor().defaultEncoding(),
                                                FileType::None, QString(),
-                                               false,true);
-        editor->setProperty("sessionCodeFile", !saveDirectory.isEmpty() && pSettings->editor().newFileAutoSave());
+                                               false,true,nullptr,number);
         mEditorManager->activeEditor(editor,true);
         //updateForEncodingInfo();
     }  catch (FileError e) {

@@ -16,11 +16,12 @@
  */
 #ifndef TEST_AI_FILENAME_WIDGET_H
 #define TEST_AI_FILENAME_WIDGET_H
-#include <QObject>
-class TestAiFilenameWidget : public QObject {
+#include "test_editor_base.h"
+class TestAiFilenameWidget : public TestEditorBase {
     Q_OBJECT
 private slots:
     void switchProviders();
+    void disableWithPendingRequest();
     void restoreLegacyDeepSeekSettings();
     void restoreSavedProviderProfile();
 };

@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "editormanager.h"
+#include "addon/fileworkflow.h"
 #include "editor.h"
 #include <QMessageBox>
 #include <QVariant>
@@ -47,15 +48,12 @@ EditorManager::EditorManager(QTabWidget* leftPageWidget,
 Editor* EditorManager::newEditor(const QString& filename, const QByteArray& encoding,
                               FileType fileType, const QString& contextFile,
                               bool inProject, bool newFile,
-                              QTabWidget* page) {
+                              QTabWidget* page, int standaloneFileNumber) {
     QTabWidget * parentPageControl = nullptr;
     if (page == nullptr)
         parentPageControl = getNewEditorPageControl();
     else
         parentPageControl = page;
-    if (fileExists(filename)) {
-        pMainWindow->fileSystemWatcher()->addPath(filename);
-    }
 
     // parentPageControl takes the owner ship
     Editor * e = new Editor(parentPageControl);
@@ -89,7 +87,13 @@ Editor* EditorManager::newEditor(const QString& filename, const QByteArray& enco
     e->applySettings();
     e->setEditorEncoding(encoding);
     e->setFilename(filename);
+    e->setFileWorkflow(mFileWorkflow);
+    if (mFileWorkflow && standaloneFileNumber > 0)
+        mFileWorkflow->newFile(e->document().get(), filename, standaloneFileNumber);
     e->setInProject(inProject, false);
+    // An unsaved document with a proposed destination still has an untitled editor name.
+    if (e->suggestedSaveName() == filename && fileExists(filename))
+        pMainWindow->fileSystemWatcher()->addPath(filename);
     e->setFileType(fileType, false);
     e->setContextFile(contextFile, false);
     if (!newFile) {
@@ -333,6 +337,17 @@ CompilerType EditorManager::getCompilerTypeForEditor(const Editor *e) const
 }
 #endif
 
+void EditorManager::setFileWorkflow(FileWorkflow *workflow)
+{
+    mFileWorkflow = workflow;
+    for (int i = 0; i < pageCount(); ++i) {
+        Editor *editor = (*this)[i];
+        editor->setFileWorkflow(workflow);
+        if (editor->isNew())
+            updateEditorTabCaption(editor);
+    }
+}
+
 void EditorManager::updateEditorTabCaption(Editor* e)
 {
     QTabWidget *parentWidget = mLeftPageWidget;
@@ -344,7 +359,7 @@ void EditorManager::updateEditorTabCaption(Editor* e)
     if (index==-1)
         return;
     parentWidget->setTabText(index,e->caption());
-    parentWidget->setTabToolTip(index, e->filename());
+    parentWidget->setTabToolTip(index, e->suggestedSaveName());
 }
 
 void EditorManager::onBreakpointAdded(const Editor *e, int line)
@@ -405,6 +420,10 @@ void EditorManager::onFileSaving(Editor *e, const QString &filename)
 
 void EditorManager::onFileSaved(Editor *e, const QString &filename)
 {
+    if (Editor *peer = peerOf(e)) {
+        peer->setIsNew(false);
+        updateEditorTabCaption(peer);
+    }
     pMainWindow->onFileSaved(filename, e->inProject());
 }
 

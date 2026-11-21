@@ -22,6 +22,34 @@
 #include <QRegularExpression>
 #include <QUuid>
 #include <QStandardPaths>
+#include <QSettings>
+
+CodeNaming::Preferences CodeNaming::Preferences::load(const QString &settingsFile)
+{
+    QSettings settings(settingsFile, QSettings::IniFormat);
+    settings.beginGroup("Editor");
+    Preferences prefs;
+    prefs.root = QDir::fromNativeSeparators(settings.value("new_file_save_root").toString().trimmed());
+    prefs.root = QDir::isAbsolutePath(prefs.root) ? QDir::cleanPath(prefs.root) : defaultSaveRoot();
+    const int folder = settings.value("new_file_folder_rule", 0).toInt();
+    if (folder >= int(FolderRule::PerSession) && folder <= int(FolderRule::Fixed))
+        prefs.folderRule = static_cast<FolderRule>(folder);
+    const int name = settings.value("new_file_name_rule", 0).toInt();
+    if (name == int(FilenameRule::Timestamp))
+        prefs.filenameRule = FilenameRule::Timestamp;
+    prefs.directSave = settings.value("new_file_auto_save", true).toBool();
+    return prefs;
+}
+
+void CodeNaming::Preferences::save(const QString &settingsFile) const
+{
+    QSettings settings(settingsFile, QSettings::IniFormat);
+    settings.beginGroup("Editor");
+    settings.setValue("new_file_save_root", root);
+    settings.setValue("new_file_folder_rule", int(folderRule));
+    settings.setValue("new_file_name_rule", int(filenameRule));
+    settings.setValue("new_file_auto_save", directSave);
+}
 
 QString CodeNaming::defaultSaveRoot()
 {

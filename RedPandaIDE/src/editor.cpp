@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "editor.h"
-#include "utils/codenaming.h"
+#include "addon/fileworkflow.h"
 
 #include <QtCore/QFileInfo>
 #include <QFont>
@@ -271,21 +271,17 @@ void Editor::convertToEncoding(const QByteArray &encoding)
 }
 
 bool Editor::save(bool force, bool doReparse) {
-    if (this->mIsNew && !force) {
-        if (property("sessionCodeFile").toBool()) {
-            QString error;
-            QString destination = CodeNaming::reserveFile(mFilename, &error);
-            if (destination.isEmpty()) {
-                QMessageBox::critical(this, tr("Save Error"), error);
-                return false;
-            }
-            if (saveAs(destination, doReparse))
-                return true;
-            QFile::remove(destination);
-            return false;
+    if (mIsNew) {
+        if (mFileWorkflow && !inProject()) {
+            auto result = mFileWorkflow->firstSave(document().get(), force, [this, doReparse](const QString &path) {
+                return saveAs(path, doReparse);
+            });
+            if (result.has_value())
+                return *result;
         }
-        return saveAs("", doReparse);
-    }    
+        if (!force)
+            return saveAs("", doReparse);
+    }
     try {
         if (mEditorSettings->autoFormatWhenSaved()) {
             reformat(false);
@@ -329,7 +325,8 @@ bool Editor::saveAs(const QString &name, bool doCheckSyntax){
     if (name.isEmpty()) {
         QString selectedFileFilter;
         QString defaultExt;
-        defaultExt=QFileInfo(oldName).suffix();
+        const QString suggested = suggestedSaveName();
+        defaultExt=QFileInfo(suggested).suffix();
         if (defaultExt.isEmpty()) {
             if (mEditorSettings->defaultFileCpp()) {
                 selectedFileFilter = pSystemConsts->defaultCPPFileFilter();
@@ -341,11 +338,11 @@ bool Editor::saveAs(const QString &name, bool doCheckSyntax){
         } else {
             selectedFileFilter = pSystemConsts->fileFilterFor(defaultExt);
         }
-        QFileDialog dialog(this,tr("Save As"),extractFilePath(mFilename),
+        QFileDialog dialog(this,tr("Save As"),extractFilePath(suggested),
                            pSystemConsts->defaultFileFilters().join(";;"));
         dialog.selectNameFilter(selectedFileFilter);
         //dialog.setDefaultSuffix(defaultExt);
-        dialog.selectFile(mFilename);
+        dialog.selectFile(suggested);
         dialog.setFileMode(QFileDialog::AnyFile);
         dialog.setAcceptMode(QFileDialog::AcceptSave);
 
@@ -5588,9 +5585,19 @@ bool Editor::autoIndent()
     return opts.testFlag(QSynedit::EditorOption::AutoIndent);
 }
 
+QString Editor::suggestedSaveName() const
+{
+    if (mFileWorkflow && isNew() && !inProject()) {
+        const QString path = mFileWorkflow->suggestedPath(document().get());
+        if (!path.isEmpty())
+            return path;
+    }
+    return mFilename;
+}
+
 QString Editor::caption() {
     QString result;
-    result = QFileInfo(mFilename).fileName();
+    result = QFileInfo(suggestedSaveName()).fileName();
     if (this->modified()) {
         result.append("[*]");
     }

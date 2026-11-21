@@ -23,7 +23,12 @@ private slots:
     void saveNewAndUpdate();
     void settingsRoundTrip();
     void invalidRulesUseDefaults();
+    void manualFirstSaveCanBeCancelled_data();
     void manualFirstSaveCanBeCancelled();
+    void toggleLifecycle();
+#ifndef REDPANDA_STATIC_FILE_PLUGIN
+    void missingPluginRestoresStock();
+#endif
     void collisionKeepsOriginal();
 };
 #endif

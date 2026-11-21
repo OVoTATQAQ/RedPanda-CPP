@@ -23,6 +23,12 @@ target("RedPandaIDE")
     add_rules("qt.ts")
 
     add_deps("redpanda_qt_utils", "qsynedit")
+    if has_config("static-file-plugin") then
+        add_deps("sessionai")
+        add_defines("REDPANDA_STATIC_FILE_PLUGIN")
+    else
+        add_deps("sessionai", {inherit = false})
+    end
     add_frameworks(
         "QtGui",
         "QtNetwork",
@@ -109,7 +115,6 @@ target("RedPandaIDE")
         "src/settings/languagesettings.cpp",
         "src/settings/uisettings.cpp",
         -- utils
-        "src/utils/codenaming.cpp",
         "src/utils/escape.cpp",
         "src/utils/file.cpp",
         "src/utils/font.cpp",
@@ -122,8 +127,7 @@ target("RedPandaIDE")
         "src/utils/ui.cpp")
 
     add_moc_classes(
-        "src/settingsdialog/editornewfileswidget",
-        "src/widgets/aifilenamewidget",
+        "src/addon/fileworkflowloader",
         "src/caretlist",
         "src/codesnippetsmanager",
         "src/cpprefacter",
@@ -327,11 +331,35 @@ target("test-makefile-escape")
         "test/test-makefile-escape.cpp")
     add_includedirs(".")
 
+target("sessionai")
+    if has_config("static-file-plugin") then
+        add_rules("qt.static")
+        add_defines("QT_STATICPLUGIN")
+    else
+        add_rules("qt.shared")
+        set_prefixname("")
+        set_targetdir("$(builddir)/$(plat)/$(arch)/$(mode)/fileplugins")
+        if get_config("filesystem-layout") == "flat" then
+            set_prefixdir("/", {libdir = "fileplugins", bindir = "fileplugins"})
+        else
+            set_prefixdir("/", {libdir = "$(libexecdir)/$(app-name)/fileplugins",
+                                bindir = "$(libexecdir)/$(app-name)/fileplugins"})
+        end
+    end
+    add_rules("qt.ts")
+    add_frameworks("QtCore", "QtGui", "QtNetwork", "QtWidgets")
+    add_includedirs(".")
+    add_files("plugins/sessionai/codenaming.cpp", "plugins/sessionai/sessionai_zh_CN.ts")
+    add_moc_classes(
+        "plugins/sessionai/sessionaiplugin",
+        "plugins/sessionai/aifilenamewidget",
+        "plugins/sessionai/editornewfileswidget")
+
 target("test-codenaming")
     set_kind("binary")
     add_rules("qt.console")
     add_frameworks("QtTest")
     set_default(false)
     add_tests("default")
-    add_files("src/utils/codenaming.cpp", "test/test-codenaming.cpp")
+    add_files("plugins/sessionai/codenaming.cpp", "test/test-codenaming.cpp")
     add_includedirs(".")

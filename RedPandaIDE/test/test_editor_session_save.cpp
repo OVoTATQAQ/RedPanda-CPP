@@ -15,30 +15,42 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "test_editor_session_save.h"
-#include "src/editor.h"
-#include <QtTest>
-#include <QTemporaryDir>
-#include <QFile>
-#include <QFileDialog>
-#include <QTimer>
-#include <QScopeGuard>
+#include "fileworkflowfixture.h"
 #include "src/systemconsts.h"
-#include "src/settings/editorsettings.h"
+#include <QtTest>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDockWidget>
+#include <QFileDialog>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QScopeGuard>
+#include <QTimer>
+
+static void useFixedFolder(const QTemporaryDir &root, bool direct = true)
+{
+    QSettings settings(root.filePath("settings.ini"), QSettings::IniFormat);
+    settings.setValue("Editor/new_file_save_root", root.path());
+    settings.setValue("Editor/new_file_folder_rule", 2);
+    settings.setValue("Editor/new_file_auto_save", direct);
+}
 
 void TestEditorSessionSave::saveNewAndUpdate()
 {
     init_editor();
     QTemporaryDir root;
+    useFixedFolder(root);
+    FileWorkflowFixture host(root, mEditor.get());
+    host.enable();
+    QVERIFY(host.loader.active());
+    host.newFile(mEditor.get());
     QString name = root.filePath("untitled1.cpp");
-    mEditor->setFilename(name);
-    mEditor->setProperty("sessionCodeFile", true);
-    mEditor->setGetOpennedFunc([this](const QString &name) -> Editor * {
-        return name == mEditor->filename() ? mEditor.get() : nullptr;
-    });
+    QCOMPARE(mEditor->suggestedSaveName(), name);
     mEditor->loadContent(QString("int main() { return 0; }"));
     QVERIFY(mEditor->save(false, false));
     QVERIFY(!mEditor->isNew());
     QCOMPARE(mEditor->filename(), name);
+    host.disable();
     mEditor->loadContent(QString("int main() { return 1; }"));
     QVERIFY(mEditor->save(false, false));
     QFile result(name);
@@ -51,13 +63,15 @@ void TestEditorSessionSave::collisionKeepsOriginal()
 {
     init_editor();
     QTemporaryDir root;
-    QString name = root.filePath("untitled1.cpp");
-    QFile original(name);
+    useFixedFolder(root);
+    FileWorkflowFixture host(root, mEditor.get());
+    host.enable();
+    QVERIFY(host.loader.active());
+    host.newFile(mEditor.get());
+    QFile original(root.filePath("untitled1.cpp"));
     QVERIFY(original.open(QIODevice::WriteOnly));
     original.write("previous code");
     original.close();
-    mEditor->setFilename(name);
-    mEditor->setProperty("sessionCodeFile", true);
     mEditor->loadContent(QString("int main() {}"));
     QVERIFY(mEditor->save(false, false));
     QCOMPARE(mEditor->filename(), root.filePath("untitled1_1.cpp"));
@@ -67,76 +81,142 @@ void TestEditorSessionSave::collisionKeepsOriginal()
 
 void TestEditorSessionSave::settingsRoundTrip()
 {
+    init_editor();
     QTemporaryDir root;
-    const QString config = root.filePath("settings.ini");
     {
-        SettingsPersistor persistor(config);
-        EditorSettings settings(&persistor);
-        settings.load();
-        QCOMPARE(settings.newFileSaveRoot(), CodeNaming::defaultSaveRoot());
-        QCOMPARE(settings.newFileFolderRule(), CodeNaming::FolderRule::PerSession);
-        QCOMPARE(settings.newFileNameRule(), CodeNaming::FilenameRule::Numbered);
-        QVERIFY(settings.newFileAutoSave());
-        settings.setNewFileSaveRoot(root.filePath("code"));
-        settings.setNewFileFolderRule(CodeNaming::FolderRule::PerDay);
-        settings.setNewFileNameRule(CodeNaming::FilenameRule::Timestamp);
-        settings.setNewFileAutoSave(false);
-        settings.save();
-        QCOMPARE(persistor.sync(), QSettings::NoError);
+        FileWorkflowFixture host(root, mEditor.get());
+        host.enable();
+        QVERIFY(host.loader.active());
+        host.window.findChild<QLineEdit *>("newFileSaveRoot")->setText(root.filePath("daily"));
+        host.window.findChild<QComboBox *>("newFileFolderRule")->setCurrentIndex(1);
+        host.window.findChild<QComboBox *>("newFileNameRule")->setCurrentIndex(1);
+        host.window.findChild<QCheckBox *>("newFileAutoSave")->setChecked(false);
+        host.window.findChild<QPushButton *>("applyNewFilePreferences")->click();
     }
-    SettingsPersistor persistor(config);
-    EditorSettings restored(&persistor);
-    restored.load();
-    QCOMPARE(restored.newFileSaveRoot(), root.filePath("code"));
-    QCOMPARE(restored.newFileFolderRule(), CodeNaming::FolderRule::PerDay);
-    QCOMPARE(restored.newFileNameRule(), CodeNaming::FilenameRule::Timestamp);
-    QVERIFY(!restored.newFileAutoSave());
+    FileWorkflowFixture restored(root, mEditor.get());
+    QVERIFY(restored.loader.active());
+    QVERIFY(restored.loader.toggleAction()->isChecked());
+    restored.newFile(mEditor.get(), 41);
+    QFileInfo example(mEditor->suggestedSaveName());
+    QCOMPARE(example.absolutePath(), root.filePath("daily/" + QDate::currentDate().toString("yyyy-MM-dd")));
+    QVERIFY(example.fileName().startsWith("code_"));
+    QVERIFY(example.fileName().endsWith("_41.cpp"));
+    QVERIFY(!restored.window.findChild<QCheckBox *>("newFileAutoSave")->isChecked());
 }
 
 void TestEditorSessionSave::invalidRulesUseDefaults()
 {
     QTemporaryDir root;
-    const QString config = root.filePath("settings.ini");
-    {
-        QSettings settings(config, QSettings::IniFormat);
-        settings.setValue("Editor/new_file_save_root", "relative/path");
-        settings.setValue("Editor/new_file_folder_rule", 99);
-        settings.setValue("Editor/new_file_name_rule", -1);
-    }
-    SettingsPersistor persistor(config);
-    EditorSettings restored(&persistor);
-    restored.load();
-    QCOMPARE(restored.newFileSaveRoot(), CodeNaming::defaultSaveRoot());
-    QCOMPARE(restored.newFileFolderRule(), CodeNaming::FolderRule::PerSession);
-    QCOMPARE(restored.newFileNameRule(), CodeNaming::FilenameRule::Numbered);
+    QSettings settings(root.filePath("settings.ini"), QSettings::IniFormat);
+    settings.setValue("Editor/new_file_save_root", root.path());
+    settings.setValue("Editor/new_file_folder_rule", 99);
+    settings.setValue("Editor/new_file_name_rule", -1);
+    FileWorkflowFixture host(root);
+    host.enable();
+    QVERIFY(host.loader.active());
+    QCOMPARE(host.window.findChild<QComboBox *>("newFileFolderRule")->currentIndex(), 0);
+    QCOMPARE(host.window.findChild<QComboBox *>("newFileNameRule")->currentIndex(), 0);
+    QVERIFY(host.window.findChild<QCheckBox *>("newFileAutoSave")->isChecked());
+}
+
+void TestEditorSessionSave::manualFirstSaveCanBeCancelled_data()
+{
+    QTest::addColumn<bool>("direct");
+    QTest::addColumn<bool>("disableBeforeSave");
+    QTest::newRow("manual first save") << false << false;
+    QTest::newRow("disabled after creating a direct-save file") << true << true;
 }
 
 void TestEditorSessionSave::manualFirstSaveCanBeCancelled()
 {
+    QFETCH(bool, direct);
+    QFETCH(bool, disableBeforeSave);
     SystemConsts systemConsts;
     auto originalConsts = pSystemConsts;
     pSystemConsts = &systemConsts;
     auto restoreConsts = qScopeGuard([originalConsts]() { pSystemConsts = originalConsts; });
     init_editor();
     QTemporaryDir root;
-    QString name = root.filePath("untitled1.cpp");
-    mEditor->setFilename(name);
-    mEditor->setProperty("sessionCodeFile", false);
+    useFixedFolder(root, direct);
+    FileWorkflowFixture host(root, mEditor.get());
+    host.enable();
+    QVERIFY(host.loader.active());
+    host.newFile(mEditor.get());
     mEditor->loadContent(QString("int main() {}"));
+    if (disableBeforeSave)
+        host.disable();
+    const QString suggestion = disableBeforeSave ? QString("untitled1.cpp") : root.filePath("untitled1.cpp");
+    QCOMPARE(mEditor->suggestedSaveName(), suggestion);
     QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
-    bool dialogShown = false;
-    QTimer::singleShot(0, [&dialogShown]() {
-        for (QWidget *widget : QApplication::topLevelWidgets()) {
-            if (auto dialog = qobject_cast<QFileDialog *>(widget)) {
-                dialogShown = true;
-                dialog->reject();
-            }
+    QString shownPath;
+    QTimer::singleShot(0, [&shownPath]() {
+        if (auto dialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget())) {
+            shownPath = dialog->selectedFiles().value(0);
+            dialog->reject();
         }
     });
     QVERIFY(!mEditor->save(false, false));
-    QVERIFY(dialogShown);
+    QCOMPARE(shownPath, QFileInfo(suggestion).absoluteFilePath());
     QVERIFY(mEditor->isNew());
-    QCOMPARE(mEditor->filename(), name);
-    QVERIFY(!QFile::exists(name));
+    QVERIFY(!QFile::exists(root.filePath("untitled1.cpp")));
     QVERIFY(mEditor->text().contains("int main()"));
 }
+
+void TestEditorSessionSave::toggleLifecycle()
+{
+    init_editor();
+    QTemporaryDir root;
+    const QString codeRoot = root.filePath("code");
+    {
+        FileWorkflowFixture host(root, mEditor.get());
+        QVERIFY(!host.loader.active());
+        QVERIFY(!host.loader.toggleAction()->isChecked());
+        QVERIFY(host.viewMenu.actions().isEmpty());
+        host.newFile(mEditor.get());
+        QVERIFY(!QFileInfo::exists(codeRoot));
+        host.enable();
+        QVERIFY(host.loader.active());
+        QCOMPARE(mEditor->suggestedSaveName(), mEditor->filename());
+        host.newFile(mEditor.get(), 2);
+        const QString firstFolder = QFileInfo(mEditor->suggestedSaveName()).absolutePath();
+        QVERIFY(QDir(codeRoot).exists());
+        QPointer<QDockWidget> panel = host.window.findChild<QDockWidget *>("AIFileNameDock");
+        QVERIFY(panel);
+        QCOMPARE(host.viewMenu.actions().size(), 1);
+        host.disable();
+        QVERIFY(panel.isNull());
+        QVERIFY(host.viewMenu.actions().isEmpty());
+        QCOMPARE(mEditor->suggestedSaveName(), QString("untitled2.cpp"));
+        host.enable();
+        QVERIFY(host.loader.active());
+        QCOMPARE(mEditor->suggestedSaveName(), QString("untitled2.cpp"));
+        host.newFile(mEditor.get(), 3);
+        QCOMPARE(QFileInfo(mEditor->suggestedSaveName()).absolutePath(), firstFolder);
+        QCOMPARE(host.viewMenu.actions().size(), 1);
+        host.disable();
+    }
+    FileWorkflowFixture restored(root);
+    QVERIFY(!restored.loader.active());
+    QVERIFY(restored.viewMenu.actions().isEmpty());
+    QCOMPARE(QDir(codeRoot).entryList(QDir::Dirs | QDir::NoDotAndDotDot).size(), 1);
+}
+
+#ifndef REDPANDA_STATIC_FILE_PLUGIN
+void TestEditorSessionSave::missingPluginRestoresStock()
+{
+    QTemporaryDir root;
+    const QString config = root.filePath("settings.ini");
+    QSettings settings(config, QSettings::IniFormat);
+    settings.setValue("Plugins/sessionAI", true);
+    QMainWindow window;
+    QMenu viewMenu;
+    FileWorkflowLoader loader({&window, &viewMenu, config, {}, {}, {}}, nullptr, root.filePath("missing"));
+    QSignalSpy errors(&loader, &FileWorkflowLoader::loadFailed);
+    loader.restore();
+    QCOMPARE(errors.count(), 1);
+    QVERIFY(!loader.active());
+    QVERIFY(!loader.toggleAction()->isChecked());
+    QVERIFY(viewMenu.actions().isEmpty());
+    QVERIFY(!settings.value("Plugins/sessionAI").toBool());
+}
+#endif

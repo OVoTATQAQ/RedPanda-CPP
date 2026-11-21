@@ -20,8 +20,8 @@
 #include <QPointer>
 #include <QHash>
 #include <QPair>
-#include <functional>
-class Editor;
+#include "src/addon/fileworkflow.h"
+class QNetworkReply;
 class QLabel;
 class QComboBox;
 class QLineEdit;
@@ -30,14 +30,13 @@ class QNetworkAccessManager;
 class AiFilenameWidget : public QWidget {
     Q_OBJECT
 public:
-    AiFilenameWidget(std::function<Editor *()> currentEditor,
-                     const QString &settingsFile, QWidget *parent = nullptr);
+    explicit AiFilenameWidget(const FileWorkflowContext &context, QWidget *parent = nullptr);
+    ~AiFilenameWidget() override;
 private:
     void changeProvider();
     void generate();
     void saveSuggested();
-    std::function<Editor *()> mCurrentEditor;
-    QString mSettingsFile;
+    FileWorkflowContext mContext;
     QLineEdit *mEndpoint, *mKey, *mName;
     QComboBox *mProvider, *mModel;
     QString mCurrentProvider;
@@ -45,7 +44,7 @@ private:
     QLabel *mStatus;
     QPushButton *mGenerate, *mSave;
     QNetworkAccessManager *mNetwork;
-    QPointer<Editor> mSource;
-    QString mSourceText, mSourceFilename;
+    QNetworkReply *mPendingReply = nullptr;
+    StandaloneFile mSource;
 };
 #endif

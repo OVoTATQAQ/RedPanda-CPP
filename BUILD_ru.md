@@ -260,6 +260,7 @@ Xmake options:
   - Applies to: hierarchy filesystem layout.
   - Arch Linux and MSYS2 use `lib`.
 - `lua-addon`: enable Lua add-ons.
+- Use `--static-file-plugin=y` with static Qt to link the file workflow plugin into the IDE.
 - `portable-config`: `oui`, `non`, or `registry`.
   - Applies to: Windows.
   - `oui`: yes, write config files to Red Panda C++’s directory.
